@@ -15,7 +15,7 @@
 
 /*---------------------------------------------------------------------------*/
 #define FLASH_PAGE_SIZE     0x100   /* 256 bytes */
-#define FLASH_CFG_ADDR      0x08007000
+#define FLASH_CFG_ADDR      0x08007800
 #define FLASH_END_ADDR      0x08008000
 
 #define CFG_SIGNATURE       0xA5A55A5A

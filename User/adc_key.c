@@ -1,0 +1,171 @@
+/*---------------------------------------------------------------------------*/
+/**
+ * @file adc_key.c
+ * @author charles-park (charles.park@hardkernel.com)
+ * @brief CH552 ADC Key
+ * @version 0.1
+ * @date 2024-02-15
+ *
+ * @copyright Copyright (c) 2022
+**/
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+#include "Arduino.h"
+#include "vu12_fw.h"
+#include <string.h>
+
+/*---------------------------------------------------------------------------*/
+#include "protocol.h"
+#include "backlight.h"
+#include "gpio_i2c.h"
+#include "lt8619c.h"
+#include "eeprom.h"
+#include "adc_key.h"
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+uint8_t  adc_key_init   (uint16_t adc_port, uint16_t ref_volt);
+uint8_t  adc_key_add    (uint16_t num, uint16_t key_code, uint16_t max_mv, uint16_t min_mv);
+uint8_t  adc_key_remove (uint16_t num);
+uint8_t  adc_key_repeat (uint16_t num, uint16_t repeat_ms);
+uint16_t adc_key_read   (bool b_clr);
+void     adc_key_check  (void);
+void     adc_key_loop   (void);
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+struct adc_key_grp  KeyGrp;
+
+uint64_t MillisCheckADC = 0;
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+uint8_t adc_key_init    (uint16_t adc_port, uint16_t ref_volt)
+{
+    KeyGrp.ref_volt = ref_volt;
+    KeyGrp.adc_port = adc_port;
+    KeyGrp.event    = 0;
+    pinMode(adc_port, INPUT_ANALOG);
+    return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+uint8_t adc_key_add     (uint16_t num, uint16_t key_code, uint16_t max_mv, uint16_t min_mv)
+{
+    if (num >= KEY_ADC_CNT) return 0;
+
+    KeyGrp.keys[num].flags     = KEY_VALID_F;
+    KeyGrp.keys[num].max_mv    = KeyGrp.ref_volt <= max_mv ? KeyGrp.ref_volt : max_mv;
+    KeyGrp.keys[num].min_mv    = min_mv;
+    KeyGrp.keys[num].code      = key_code;
+    KeyGrp.keys[num].repeat_ms = 0;
+    return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+uint8_t adc_key_remove  (uint16_t num)
+{
+    if (num >= KEY_ADC_CNT) return 0;
+
+    memset (&KeyGrp.keys[num], 0, sizeof (struct adc_key));
+    return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+uint8_t adc_key_repeat  (uint16_t num, uint16_t repeat_ms)
+{
+    if (num >= KEY_ADC_CNT) return 0;
+
+    KeyGrp.keys[num].repeat_ms = repeat_ms;
+    return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+uint16_t adc_key_read   (bool b_clr)
+{
+    uint16_t key_code;
+    if ((KeyGrp.event & KEY_PRESS_F) && (KeyGrp.event & KEY_RELEASE_F))
+        key_code = (KeyGrp.event & KEY_CODE_MASK);
+    else
+        key_code = 0;
+
+    if (b_clr)  KeyGrp.event = 0;
+
+    return  key_code;
+}
+
+
+/*---------------------------------------------------------------------------*/
+void adc_key_check (void)
+{
+    /* Key event check */
+    if (adc_key_read (0)) {
+        uint8_t key_code = adc_key_read (1);
+        switch (key_code) {
+            case EVENT_D_VOL_UP:    case EVENT_D_VOL_DN:
+                DigitalVolume = (key_code == EVENT_D_VOL_UP) ?
+                                DigitalVolume +1 : DigitalVolume -1;
+                if (eeprom_cfg_write ('D', 0, DigitalVolume))
+                    i2c_send (I2C_ADDR_CODEC, CODEC_REG_DGAIN, &DigitalVolume, 1);
+                printf ("%s : Digital volume = %d\r\n", __func__, DigitalVolume);
+                break;
+
+            case EVENT_A_VOL_UP:    case EVENT_A_VOL_DN:
+                AnalogVolume = (key_code == EVENT_A_VOL_UP) ?
+                                AnalogVolume +1 : AnalogVolume -1;
+                if (eeprom_cfg_write ('A', 0, AnalogVolume))
+                    i2c_send (I2C_ADDR_CODEC, CODEC_REG_AGAIN, &AnalogVolume, 1);
+                printf ("%s : Analog volume = %d\r\n", __func__, AnalogVolume);
+                break;
+
+            case EVENT_B_VAL_UP:    case EVENT_B_VAL_DN:
+                Brightness = (key_code == EVENT_B_VAL_UP) ?
+                                Brightness +10 : Brightness -10;
+                if (eeprom_cfg_write ('B', 0, Brightness))
+                    backlight_control (Brightness);
+                printf ("%s : Brightness value = %d\r\n", __func__, Brightness);
+                break;
+
+            case EVENT_S_RESET:
+                printf ("%s : System reboot\r\n", __func__);
+                while (1);
+                break;
+
+            case EVENT_T_RESET:
+                printf ("%s : Touch reset\r\n", __func__);
+                touch_reset (200);
+                break;
+        }
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+void adc_key_loop       (void)
+{
+    uint8_t i;
+    uint32_t adc_mv;
+
+    if(MillisCheckADC + MILLIS_ADC_PERIOD < millis()) {
+        MillisCheckADC = millis ();
+        adc_mv =
+            ((uint32_t)KeyGrp.ref_volt * (uint32_t)analogRead(KeyGrp.adc_port)) / ADC_RES_BITS;
+
+        for (i = 0; i < KEY_ADC_CNT; i++) {
+            if ((adc_mv >= KeyGrp.keys[i].min_mv) &&
+                (adc_mv <= KeyGrp.keys[i].max_mv) &&
+                (KeyGrp.keys[i].flags & KEY_VALID_F)) {
+
+                KeyGrp.event = (KeyGrp.keys[i].code | KEY_PRESS_F);
+            }
+            if (!adc_mv) {
+                if ((KeyGrp.event & KEY_PRESS_F) && ((KeyGrp.event & KEY_CODE_MASK) == KeyGrp.keys[i].code))
+                    KeyGrp.event |=  (KEY_RELEASE_F);
+            }
+        }
+        adc_key_check();
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/

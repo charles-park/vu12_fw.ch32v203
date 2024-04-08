@@ -19,6 +19,7 @@
 #include "gpio_i2c.h"
 #include "lt8619c.h"
 #include "eeprom.h"
+#include "adc_key.h"
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -104,6 +105,24 @@ void tass805m_init (void)
 }
 
 /*---------------------------------------------------------------------------*/
+void key_init (void)
+{
+//    adc_key_add  (key num(0~9), key_event_code (1~255), key_adc_max_mv, key_adc_min_volt);
+    adc_key_init (PORT_ADC_KEY, 3300);
+    adc_key_add  (0, EVENT_D_VOL_UP, 3300, 3200);   // 3300
+    adc_key_add  (1, EVENT_A_VOL_UP, 3100, 2900);   // 3000
+    adc_key_add  (2, EVENT_B_VAL_UP, 2800, 2600);   // 2700
+    // touch reset
+    adc_key_add  (3, EVENT_T_RESET , 2400, 2200);   // 2320
+
+    adc_key_add  (4, EVENT_D_VOL_DN, 2100, 1900);   // 1980
+    adc_key_add  (5, EVENT_A_VOL_DN, 1700, 1500);   // 1650
+    adc_key_add  (6, EVENT_B_VAL_DN, 1400, 1200);   // 1320
+    // system reboot
+    adc_key_add  (7, EVENT_S_RESET , 1100, 900);    // 1000
+}
+
+/*---------------------------------------------------------------------------*/
 void setup() {
     port_init ();
 
@@ -126,6 +145,9 @@ void setup() {
 
     // backlight (94Khz init)
     backlight_init (PORT_BACKLIGHT_PWM);
+
+    // ADC key init
+    key_init();
 
     /* VU12 System watchdog enable */
     watchdog_setup ();
@@ -162,9 +184,11 @@ void loop() {
         {
             uint8_t rev = 0;
             if (i2c_read (0x76<<1, 0xD0, &rev, 1))
-                printf ("bme150 rev = 0x%02x\r\n", rev);
+                printf ("MillisCheck = %d, bme150 rev = 0x%02x\r\n", MillisCheck, rev);
         }
     }
+    /* adc key process */
+    adc_key_loop ();
 }
 
 /*---------------------------------------------------------------------------*/
