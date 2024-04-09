@@ -7,7 +7,7 @@
  *                      Printf , Delay functions.
 *********************************************************************************
 * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
-* Attention: This software (modified or not) and binary are used for 
+* Attention: This software (modified or not) and binary are used for
 * microcontroller manufactured by Nanjing Qinheng Microelectronics.
 *******************************************************************************/
 #include "debug.h"
@@ -75,6 +75,7 @@ void Delay_Ms(uint32_t n)
     SysTick->CTLR &= ~(1 << 0);
 }
 
+#if defined (DEBUG)
 /*********************************************************************
  * @fn      USART_Printf_Init
  *
@@ -114,7 +115,6 @@ void USART_Printf_Init(uint32_t baudrate)
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
-
 #endif
 
     USART_InitStructure.USART_BaudRate = baudrate;
@@ -138,6 +138,7 @@ void USART_Printf_Init(uint32_t baudrate)
 
 #endif
 }
+#endif  // #if defined(DEBUG)
 
 /*********************************************************************
  * @fn      _write

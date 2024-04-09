@@ -128,10 +128,24 @@ void setup() {
 
     // Wait serial port ready.
     delay(1000);
+    USBSerial_println ("\r\n");
 
+    // Debug port info display
+#if defined (_DEBUG_UART_PORT_)
+    USBSerial_println ("DEBUG_UART : PORT = %d, BUAD = %d",
+        _DEBUG_UART_PORT_, _DEBUG_UART_BAUD_);
+#else
+    USBSerial_println ("DEBUG_UART : PORT = none, BUAD = none");
+#endif
+
+#if defined (_FW_VERSION_STR_)
+    USBSerial_println ("FW_VERSION : %s", _FW_VERSION_STR_);
+#else
+    USBSerial_println ("FW_VERSION : V???");
+#endif
     /* USB Serial data init, boot msg send */
-    USBSerial_println(__DATE__" " __TIME__);
-    USBSerial_println("@S-OK#");
+    USBSerial_println (__DATE__" " __TIME__ );
+    USBSerial_println ("@S-OK#");
 
     // get platform save data from eeprom
     // DigitalVolume, AnalogVolume, Brigntness
@@ -165,7 +179,9 @@ void loop() {
     /* lt8619c check loop (1 sec) */
     if (MillisCheck + PERIOD_LT8619C_LOOP < millis()) {
         if (!lt8619c_loop()) {
+#if !defined (_DEBUG_DEV_BOARD_)
             backlight_control (0);  HDMI_Signal = 0;
+#endif
             alive_led ();
         } else {
             if (HDMI_Signal > HDMI_SIGNAL_STABLE)
@@ -178,14 +194,16 @@ void loop() {
             }
             digitalWrite (PORT_ALIVE_LED, LOW);
         }
-        MillisCheck = millis ();
-
+#if defined (_DEBUG_DEV_BOARD_)
         // gpio i2c test (weather board 2, bme150 rev read)
         {
             uint8_t rev = 0;
             if (i2c_read (0x76<<1, 0xD0, &rev, 1))
-                printf ("MillisCheck = %d, bme150 rev = 0x%02x\r\n", MillisCheck, rev);
+                printf ("Millis error rate = %d, MillisCheck = %d, bme150 rev = 0x%02x\r\n",
+                    millis() - (MillisCheck + PERIOD_LT8619C_LOOP), MillisCheck, rev);
         }
+#endif
+        MillisCheck = millis ();
     }
     /* adc key process */
     adc_key_loop ();

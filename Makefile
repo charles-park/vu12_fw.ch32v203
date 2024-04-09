@@ -14,6 +14,18 @@ TARGET_ELF  ?= $(TARGET_NAME).elf
 TARGET_HEX  ?= $(TARGET_NAME).hex
 TARGET_BIN  ?= $(TARGET_NAME).bin
 
+# Release F/W Version string
+DEF_FLAGS += -D_FW_VERSION_STR_=\"V032\"
+
+# Serial debug port define.
+DEF_FLAGS += -D_DEBUG_UART_PORT_=2 -D_DEBUG_UART_BAUD_=115200
+
+# ttyACMx command echo-back enable for debug
+DEF_FLAGS += -D_DEBUG_USB_PROTOCOL_
+
+# Dev board test
+DEF_FLAGS += -D_DEBUG_DEV_BOARD_
+
 # /*---------------------------------------------------------------------------*/
 #	RISC-V Toolchain
 #	http://www.mounriver.com/
@@ -59,7 +71,7 @@ $(BUILD_DIR)/%.S.o: %.S
 # c source
 $(BUILD_DIR)/%.c.o: %.c
 	$(MKDIR_P) $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEF_FLAGS) -c $< -o $@
 
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp

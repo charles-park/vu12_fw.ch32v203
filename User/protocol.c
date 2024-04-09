@@ -28,7 +28,6 @@ void protocol_data_check    (void);
 #define PROTOCOL_SIZE   6
 unsigned char Protocol[PROTOCOL_SIZE];
 
-//#define __MSG_DEBUG__
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 void protocol_data_send     (char cmd, uint8_t data)
@@ -50,10 +49,10 @@ void protocol_data_check    (void)
     for (i = 0; i < PROTOCOL_SIZE-1; i++)   Protocol[i] = Protocol[i+1];
     Protocol[PROTOCOL_SIZE-1] = USBSerial_read();
 
-#if defined(__MSG_DEBUG__)
-    USBSerial_print((char)Protocol[PROTOCOL_SIZE-1]);
+#if defined(_DEBUG_USB_PROTOCOL_)
+    USBSerial_print ("%c", (char)Protocol[PROTOCOL_SIZE-1]);
     if ((char)Protocol[PROTOCOL_SIZE-1] == '\r')
-        USBSerial_print("\n");
+        USBSerial_print ("\n");
 #endif
 
     /* Header & Tail check */
@@ -61,8 +60,8 @@ void protocol_data_check    (void)
         uint8_t data =
             (Protocol[2] - '0') * 100 + (Protocol[3] - '0') * 10 + Protocol[4] - '0';
 
-#if defined(__MSG_DEBUG__)
-        USBSerial_print("\r\n");
+#if defined(_DEBUG_USB_PROTOCOL_)
+        USBSerial_print ("\r\n");
 #endif
         switch (Protocol[1]) {
             /* Digital volume request */
@@ -86,7 +85,11 @@ void protocol_data_check    (void)
                 break;
             /* Firmware Version request */
             case    'F':
+#if defined(_FW_VERSION_STR_)
+                USBSerial_println("@%s#", _FW_VERSION_STR_);
+#else
                 USBSerial_println(PROTOCOL_FWVER_STR);
+#endif
                 return;
 
             /* System self reset (watchdog timout reset) */
@@ -99,6 +102,7 @@ void protocol_data_check    (void)
                 } else
                     USBSerial_println(PROTOCOL_RESET_STR);
 
+                // watchdog reset
                 USBSerial_flush();  while (1);
                 break;
 

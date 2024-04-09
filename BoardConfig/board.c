@@ -194,7 +194,13 @@ void ADC_init (void)
 void board_init (void)
 {
     // Debug Serial init (PA 2/3)
-    USART_Printf_Init(115200);
+#if defined(_DEBUG_UART_PORT_)
+    #if defined (_DEBUG_UART_BAUD_)
+        USART_Printf_Init(_DEBUG_UART_BAUD_);
+    #else
+        USART_Printf_Init(115200);
+    #endif
+#endif
 
     // USB CDC(ttyACM) Init (PA 11/12)
     Set_USBConfig();

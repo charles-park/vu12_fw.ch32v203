@@ -25,9 +25,13 @@ extern "C" {
 #define DEBUG_UART2    2
 #define DEBUG_UART3    3
 
-/* DEBUG UATR Definition */
-#ifndef DEBUG
-#define DEBUG   DEBUG_UART2
+// DEF_FLAGS += -D_DEBUG_UART_PORT_=2 -D_DEBUG_UART_BAUD_=115200
+#if defined(_DEBUG_UART_PORT_)
+  /* DEBUG UATR Definition */
+  //#ifndef DEBUG
+  //#define DEBUG   DEBUG_UART2
+  //#endif
+  #define DEBUG   _DEBUG_UART_PORT_
 #endif
 
 void Delay_Init(void);

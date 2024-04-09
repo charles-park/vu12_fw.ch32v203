@@ -26,7 +26,7 @@ extern "C"
 /*---------------------------------------------------------------------------*/
 #define WDT_CLR()           IWDG_ReloadCounter()
 
-#define PROTOCOL_FWVER_STR  "@V031#"
+#define PROTOCOL_FWVER_STR  "@V???#"    /* Makefile */
 #define PROTOCOL_RESET_STR  "@WRST#"
 
 /*---------------------------------------------------------------------------*/
@@ -45,12 +45,15 @@ extern "C"
 
 #define PORT_TOUCH_RESET    PB0
 
-// Debug board LED (CH32V203C8T6 Dev board)
-#define PORT_ALIVE_LED      PB2
-// New VU12 (CH32V203) Board
-// #define PORT_ALIVE_LED      PA4
-#define PORT_ADC_KEY        PA0
+#if defined (_DEBUG_DEV_BOARD_)
+    // Debug board LED (CH32V203C8T6 Dev board)
+    #define PORT_ALIVE_LED      PB2
+#else
+    // New VU12 (CH32V203) Board
+    #define PORT_ALIVE_LED      PA4
+#endif
 
+#define PORT_ADC_KEY        PA0
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
