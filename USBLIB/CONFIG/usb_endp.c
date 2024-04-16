@@ -21,7 +21,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-uint8_t USBD_Endp3_Busy;
+uint8_t USBD_Endp3_Busy = 0;
 uint16_t USB_Rx_Cnt=0;
 
 /*********************************************************************
@@ -94,9 +94,16 @@ void EP2_OUT_Callback (void)
  *
  * @return  none
  */
+uint8_t USBSerialWrSP = 0, USBSerialWrEP = 0;
+uint8_t USBSerialWrBuffer [DEF_USBD_MAX_PACK_SIZE * 2] = {0,};
+
 void EP3_IN_Callback (void)
 {
 	USBD_Endp3_Busy = 0;
+	USBSerialWrSP++;	USBSerialWrSP %= sizeof (USBSerialWrBuffer);
+	if (USBSerialWrSP != USBSerialWrEP) {
+		USBD_ENDPx_DataUp( ENDP3, &USBSerialWrBuffer[USBSerialWrSP], 1 );
+	}
 	//Uart.USB_Up_IngFlag = 0x00;
 }
 
@@ -134,7 +141,8 @@ uint16_t USBSerial_print (char *fmt, ...)
 {
 	uint8_t msg [DEF_USBD_MAX_PACK_SIZE];
 	va_list va;
-	uint16_t str_cnt;
+	uint16_t str_cnt, i;
+
 
 	memset (msg, 0, sizeof(msg));
 
@@ -143,8 +151,16 @@ uint16_t USBSerial_print (char *fmt, ...)
 	va_end (va);
 
 	str_cnt = strlen(msg);
-//	USBD_ENDPx_DataUp( ENDP3, msg, str_cnt);
-	while (USBD_ENDPx_DataUp( ENDP3, msg, str_cnt) != USB_SUCCESS);
+
+	for (i = 0; i < str_cnt; i++) {
+		USBSerialWrBuffer [USBSerialWrEP] = msg [i];
+		USBSerialWrEP++;	USBSerialWrEP %= sizeof (USBSerialWrBuffer);
+		if (USBSerialWrSP == USBSerialWrEP) {
+			USBSerialWrSP++;	USBSerialWrSP %= sizeof (USBSerialWrBuffer);
+		}
+	}
+	if (!USBD_Endp3_Busy)
+		USBD_ENDPx_DataUp( ENDP3, &USBSerialWrBuffer[USBSerialWrSP], 1);
 	return str_cnt;
 }
 
@@ -158,5 +174,6 @@ uint16_t USBSerial_println (char *fmt, ...)
 
 void USBSerial_flush (void)
 {
-	/* sp == ep */
+	/* wait sp == ep */
+	while (USBSerialWrEP != USBSerialWrSP);
 }

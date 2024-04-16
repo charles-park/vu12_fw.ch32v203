@@ -21,6 +21,14 @@ int main(void)
 {
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 
+    // Debug Serial init (PA 2/3)
+#if defined(_DEBUG_UART_PORT_)
+    #if defined (_DEBUG_UART_BAUD_)
+        USART_Printf_Init(_DEBUG_UART_BAUD_);
+    #else
+        USART_Printf_Init(115200);
+    #endif
+#endif
     // System delay func init (Delay_Ms, Delay_Us)
     Delay_Init();
 

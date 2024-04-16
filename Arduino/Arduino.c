@@ -50,6 +50,9 @@ void pinMode (enum gpio_pins pin, enum gpio_mode mode)
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
     GPIO_InitStructure.GPIO_Mode = mode;
+    if ((mode == FUNC_OD) || (mode == FUNC_PP))
+	    RCC_APB2PeriphClockCmd( RCC_APB2Periph_AFIO, ENABLE );
+
     GPIO_InitStructure.GPIO_Pin  = GPIO_PIN(pin);
 
     GPIO_Init (GPIO_REG, &GPIO_InitStructure);

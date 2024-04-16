@@ -126,15 +126,18 @@ void PWM_init (enum gpio_pins pin, u8 ccp)
     TIM_OCInitStructure.TIM_Pulse = ccp;
     TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
     switch (ch) {
-        case 1: TIM_OC1Init ( TIM, &TIM_OCInitStructure );  break;
-        case 2: TIM_OC2Init ( TIM, &TIM_OCInitStructure );  break;
-        case 3: TIM_OC3Init ( TIM, &TIM_OCInitStructure );  break;
-        case 4: TIM_OC4Init ( TIM, &TIM_OCInitStructure );  break;
+        case 1: TIM_OC1Init ( TIM, &TIM_OCInitStructure );
+                TIM_OC1PreloadConfig ( TIM, TIM_OCPreload_Disable );    break;
+        case 2: TIM_OC2Init ( TIM, &TIM_OCInitStructure );
+                TIM_OC2PreloadConfig ( TIM, TIM_OCPreload_Disable );    break;
+        case 3: TIM_OC3Init ( TIM, &TIM_OCInitStructure );
+                TIM_OC3PreloadConfig ( TIM, TIM_OCPreload_Disable );    break;
+        case 4: TIM_OC4Init ( TIM, &TIM_OCInitStructure );
+                TIM_OC4PreloadConfig ( TIM, TIM_OCPreload_Disable );    break;
         default :   return;
     }
-    TIM_CtrlPWMOutputs (TIM, ENABLE );
-    TIM_OC2PreloadConfig ( TIM, TIM_OCPreload_Disable );
     TIM_ARRPreloadConfig ( TIM, ENABLE );
+    TIM_CtrlPWMOutputs (TIM, ENABLE );
     TIM_Cmd ( TIM, ENABLE );
 }
 
@@ -193,15 +196,6 @@ void ADC_init (void)
 /*---------------------------------------------------------------------------*/
 void board_init (void)
 {
-    // Debug Serial init (PA 2/3)
-#if defined(_DEBUG_UART_PORT_)
-    #if defined (_DEBUG_UART_BAUD_)
-        USART_Printf_Init(_DEBUG_UART_BAUD_);
-    #else
-        USART_Printf_Init(115200);
-    #endif
-#endif
-
     // USB CDC(ttyACM) Init (PA 11/12)
     Set_USBConfig();
     USB_Init();
