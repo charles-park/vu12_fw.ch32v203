@@ -70,7 +70,8 @@ void protocol_data_check    (void)
 
         switch (Protocol[1]) {
             case    'D':
-                /* Digital volume range (0 ~ 255) */
+                /* Digital volume range (0 ~ 255), +24dB ~ -103dB */
+                /* 0 : +24 dB, 1 ~ 254 : 24 dB - 0.5 dB * (step), 255 : mute */
                 if (Protocol[2] == '?')
                     data = DigitalVolume;
                 else {
@@ -79,11 +80,12 @@ void protocol_data_check    (void)
                 }
                 break;
             case    'A':
-                /* Analog volume range (0 ~ 0x1F)*/
+                /* Analog volume range (0 ~ 0x1F), 0dB ~ -15.5dB */
+                /* 0 : 0 dB, 1 ~ 31 : -0.5 dB * (step) */
                 if (Protocol[2] == '?')
                     data = AnalogVolume;
                 else {
-                    data = (data > 0x1F) ? 0x1F : data;
+                    data &= A_VOL_MASK;
                     tass805m_write (CODEC_REG_AGAIN, &data);
                     eeprom_cfg_write ('A', data);
                 }

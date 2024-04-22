@@ -60,6 +60,9 @@ extern "C"
 #define A_VOL_DEFAULT       0x00    // 0 dB
 #define B_VAL_DEFAULT       0x80    // middle brightness
 
+// Analog volume range 0 ~ 31 (0 ~ 0x1F)
+#define A_VOL_MASK          0x1F
+
 // HDMI2LVDS Signal status
 enum {
     eSTATUS_NO_SIGNAL = 0,

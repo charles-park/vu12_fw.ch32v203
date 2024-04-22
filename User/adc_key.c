@@ -107,7 +107,6 @@ uint16_t adc_key_read   (bool b_clr)
     return  key_code;
 }
 
-
 /*---------------------------------------------------------------------------*/
 void adc_key_check (void)
 {
@@ -128,6 +127,7 @@ void adc_key_check (void)
             case EVENT_A_VOL_UP:    case EVENT_A_VOL_DN:
                 AnalogVolume = (key_code == EVENT_A_VOL_UP) ?
                                 AnalogVolume +1 : AnalogVolume -1;
+                AnalogVolume &= A_VOL_MASK;
                 tass805m_write (CODEC_REG_AGAIN, &AnalogVolume);
                 eeprom_cfg_write ('A', AnalogVolume);
 #if defined(_DEBUG_ADC_KEY_)
@@ -137,7 +137,6 @@ void adc_key_check (void)
 
             case EVENT_B_VAL_UP:    case EVENT_B_VAL_DN:
                 Brightness = (key_code == EVENT_B_VAL_UP) ?
-//                                Brightness +10 : Brightness -10;
                                 Brightness +1 : Brightness -1;
                 backlight_control (Brightness);
                 eeprom_cfg_write ('B', Brightness);
