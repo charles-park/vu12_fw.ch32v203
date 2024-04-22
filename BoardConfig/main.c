@@ -28,7 +28,12 @@ int main(void)
     #else
         USART_Printf_Init(115200);
     #endif
+    printf ("\r\n\r\n*** BOOT ***\r\n\r\n");
+    printf ("FW_VERSION : %s\r\n", _FW_VERSION_STR_);
+    printf ("Build Date = "__DATE__" " __TIME__ "\r\n");
+    fflush (stdout);
 #endif
+
     // System delay func init (Delay_Ms, Delay_Us)
     Delay_Init();
 

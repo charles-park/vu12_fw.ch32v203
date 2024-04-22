@@ -18,12 +18,129 @@
 #include "usb_prop.h"
 //#include "UART.h"
 
+#include "Arduino.h"
 #include <string.h>
 #include <stdarg.h>
 
+/*---------------------------------------------------------------------------*/
 uint8_t USBD_Endp3_Busy = 0;
-uint16_t USB_Rx_Cnt=0;
 
+/* 256 bytes */
+uint8_t	USBSerialRxBuffer[DEF_USBD_MAX_PACK_SIZE * 4] = {0,};
+uint16_t USBSerialRxSP = 0, USBSerialRxEP = 0;
+
+/* 256 bytes */
+uint8_t	USBSerialTxBuffer[DEF_USBD_MAX_PACK_SIZE * 4] = {0,};
+uint16_t USBSerialTxSP = 0, USBSerialTxEP = 0;
+
+/*---------------------------------------------------------------------------*/
+void USBSerialRxBufferWrite (uint8_t *buf, uint16_t len)
+{
+	uint16_t i;
+	for (i = 0; i < len; i++) {
+		USBSerialRxBuffer [USBSerialRxEP] = buf [i];
+		USBSerialRxEP++;	USBSerialRxEP %= sizeof (USBSerialRxBuffer);
+		if (USBSerialRxEP == USBSerialRxSP) {
+			USBSerialRxSP++;	USBSerialRxSP %= sizeof (USBSerialRxBuffer);
+		}
+	}
+}
+
+/*---------------------------------------------------------------------------*/
+void USBSerialTxBufferWrite (uint8_t *buf, uint16_t len)
+{
+	int16_t i;
+	for (i = 0; i < len; i++) {
+		USBSerialTxBuffer [USBSerialTxEP] = buf [i];
+		USBSerialTxEP++;	USBSerialTxEP %= sizeof (USBSerialTxBuffer);
+		if (USBSerialTxSP == USBSerialTxEP) {
+			USBSerialTxSP++;	USBSerialTxSP %= sizeof (USBSerialTxBuffer);
+		}
+	}
+}
+
+/*---------------------------------------------------------------------------*/
+uint8_t USBSerialTxBufferCheck (void)
+{
+	if ((USBSerialTxSP != USBSerialTxEP) && (!USBD_Endp3_Busy)) {
+		USBD_ENDPx_DataUp( ENDP3, &USBSerialTxBuffer[USBSerialTxSP], 1 );
+		USBSerialTxSP++;	USBSerialTxSP %= sizeof (USBSerialTxBuffer);
+	}
+	return USBD_Endp3_Busy;
+}
+
+/*---------------------------------------------------------------------------*/
+uint16_t USBSerialRxBufferCheck (void)
+{
+	if (USBSerialRxSP != USBSerialRxEP) {
+		if (USBSerialRxSP > USBSerialRxEP)
+			return (USBSerialRxEP + sizeof(USBSerialRxBuffer) - USBSerialRxSP);
+		else
+			return (USBSerialRxEP - USBSerialRxSP);
+	}
+	return 0;
+}
+
+/*---------------------------------------------------------------------------*/
+void USBSerial_flush (void)
+{
+	uint16_t w = 0;
+	/* wait sp == ep */
+	while ((w++ < 10) && (USBSerialTxEP != USBSerialTxSP)) {
+		if (USBSerialTxBufferCheck ())	udelay(100);
+		else							w = 0;
+	}
+}
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+uint8_t USBSerial_read (void)
+{
+	uint8_t ch = USBSerialRxBuffer [USBSerialRxSP];
+	USBSerialRxSP++;	USBSerialRxSP %= sizeof (USBSerialRxBuffer);
+	return	ch;
+}
+
+/*---------------------------------------------------------------------------*/
+uint16_t USBSerial_available (void)
+{
+	// Tx buffer check
+	USBSerialTxBufferCheck ();
+
+	// Rx buffer check
+	return USBSerialRxBufferCheck();
+}
+
+/*---------------------------------------------------------------------------*/
+uint16_t USBSerial_print (char *fmt, ...)
+{
+	uint8_t buf [DEF_USBD_MAX_PACK_SIZE * 2];
+	va_list va;
+	uint16_t len;
+
+	memset (buf, 0, sizeof(buf));
+
+	va_start (va, fmt);
+	vsprintf (buf, fmt, va);
+	va_end (va);
+
+	len = strlen(buf);
+
+	USBSerialTxBufferWrite (buf, len);
+	return len;
+}
+
+/*---------------------------------------------------------------------------*/
+uint16_t USBSerial_println (char *fmt, ...)
+{
+	uint16_t len;
+	len  = USBSerial_print (fmt);
+	len += USBSerial_print ("\r\n");
+	return len;
+}
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /*********************************************************************
  * @fn      EP2_IN_Callback
  *
@@ -43,27 +160,6 @@ void EP1_IN_Callback (void)
  *
  * @return  none
  */
-uint8_t USBSerialSP = 0, USBSerialEP = 0;
-uint8_t USBSerialBuffer [DEF_USBD_MAX_PACK_SIZE * 2] = {0,};
-
-uint8_t USBSerial_read (void)
-{
-	uint8_t ch = USBSerialBuffer [USBSerialSP];
-	USBSerialSP++;	USBSerialSP %= sizeof (USBSerialBuffer);
-	return	ch;
-}
-
-uint16_t USBSerial_available (void)
-{
-	if (USBSerialSP != USBSerialEP) {
-		if (USBSerialSP > USBSerialEP)
-			return (USBSerialEP + sizeof(USBSerialBuffer) - USBSerialSP);
-		else
-			return (USBSerialEP - USBSerialSP);
-	}
-	return 0;
-}
-
 void EP2_OUT_Callback (void)
 {
 	uint32_t len;
@@ -73,16 +169,8 @@ void EP2_OUT_Callback (void)
 	PMAToUserBufferCopy ( buf, GetEPRxAddr( EP2_OUT & 0x7F ), len );
 
 	// copy usb serial buffer from usb user buffer.
-	{
-		uint16_t i;
-		for (i = 0; i < len; i++) {
-			USBSerialBuffer [USBSerialEP] = buf [i];
-			USBSerialEP++;	USBSerialEP %= sizeof (USBSerialBuffer);
-			if (USBSerialEP == USBSerialSP) {
-				USBSerialSP++;	USBSerialSP %= sizeof (USBSerialBuffer);
-			}
-		}
-	}
+	USBSerialRxBufferWrite (buf, len);
+
 //	USBD_ENDPx_DataUp( ENDP3, buf, len); // loop back
 	SetEPRxValid( ENDP2 );
 }
@@ -94,16 +182,9 @@ void EP2_OUT_Callback (void)
  *
  * @return  none
  */
-uint8_t USBSerialWrSP = 0, USBSerialWrEP = 0;
-uint8_t USBSerialWrBuffer [DEF_USBD_MAX_PACK_SIZE * 2] = {0,};
-
 void EP3_IN_Callback (void)
 {
 	USBD_Endp3_Busy = 0;
-	USBSerialWrSP++;	USBSerialWrSP %= sizeof (USBSerialWrBuffer);
-	if (USBSerialWrSP != USBSerialWrEP) {
-		USBD_ENDPx_DataUp( ENDP3, &USBSerialWrBuffer[USBSerialWrSP], 1 );
-	}
 	//Uart.USB_Up_IngFlag = 0x00;
 }
 
@@ -135,45 +216,4 @@ uint8_t USBD_ENDPx_DataUp( uint8_t endp, uint8_t *pbuf, uint16_t len )
 		return USB_ERROR;
 	}
 	return USB_SUCCESS;
-}
-
-uint16_t USBSerial_print (char *fmt, ...)
-{
-	uint8_t msg [DEF_USBD_MAX_PACK_SIZE];
-	va_list va;
-	uint16_t str_cnt, i;
-
-
-	memset (msg, 0, sizeof(msg));
-
-	va_start (va, fmt);
-	vsprintf (msg, fmt, va);
-	va_end (va);
-
-	str_cnt = strlen(msg);
-
-	for (i = 0; i < str_cnt; i++) {
-		USBSerialWrBuffer [USBSerialWrEP] = msg [i];
-		USBSerialWrEP++;	USBSerialWrEP %= sizeof (USBSerialWrBuffer);
-		if (USBSerialWrSP == USBSerialWrEP) {
-			USBSerialWrSP++;	USBSerialWrSP %= sizeof (USBSerialWrBuffer);
-		}
-	}
-	if (!USBD_Endp3_Busy)
-		USBD_ENDPx_DataUp( ENDP3, &USBSerialWrBuffer[USBSerialWrSP], 1);
-	return str_cnt;
-}
-
-uint16_t USBSerial_println (char *fmt, ...)
-{
-	uint16_t str_cnt;
-	str_cnt  = USBSerial_print (fmt);
-	str_cnt += USBSerial_print ("\r\n");
-	return str_cnt;
-}
-
-void USBSerial_flush (void)
-{
-	/* wait sp == ep */
-	while (USBSerialWrEP != USBSerialWrSP);
 }

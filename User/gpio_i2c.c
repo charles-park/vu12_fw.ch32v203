@@ -15,7 +15,8 @@
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-#define GPIO_SET_DELAY  50      // micro seconds (I2C 10Khz)
+//#define GPIO_SET_DELAY  50      // micro seconds (I2C 10Khz)
+#define GPIO_SET_DELAY  3      // micro seconds (I2C 200Khz)
 
 /*---------------------------------------------------------------------------*/
 // gpio low level control func
@@ -124,6 +125,13 @@ uint16_t i2c_send    (uint8_t addr, uint8_t reg, uint8_t *d, uint16_t size)
 
 wr_out:
     gpio_i2c_stop  ();
+
+#if defined (_DEBUG_GPIO_I2C_)
+    if (i != size) {
+        printf ("%s(error) : addr = 0x%02X, reg = 0x%02X, size = %d\r\n", addr, reg, size);
+        USBSerial_print ("%s(error) : i2c_addr = 0x%02X\r\n", addr);
+    }
+#endif
     return i;
 }
 
@@ -153,6 +161,12 @@ uint16_t i2c_read    (uint8_t addr, uint8_t reg, uint8_t *d, uint16_t size)
 rd_out:
     gpio_i2c_stop  ();
 
+#if defined (_DEBUG_GPIO_I2C_)
+    if (i != size) {
+        printf ("%s(error) : addr = 0x%02X, reg = 0x%02X, size = %d\r\n", addr, reg, size);
+        USBSerial_print ("%s(error) : i2c_addr = 0x%02X\r\n", addr);
+    }
+#endif
     return i;
 }
 

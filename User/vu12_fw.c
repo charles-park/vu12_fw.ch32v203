@@ -18,6 +18,7 @@
 #include "backlight.h"
 #include "gpio_i2c.h"
 #include "lt8619c.h"
+#include "tass805m.h"
 #include "eeprom.h"
 #include "adc_key.h"
 
@@ -43,13 +44,13 @@ void touch_reset (uint8_t d)
 }
 
 /*---------------------------------------------------------------------------*/
-void watchdog_setup (void)
+void watchdog_setup (uint16_t reload)
 {
     // 40Khz(LSI Clk) / Prescaler / Reloadcounter (Decrement)
-    // 3.2s IWDG reset
+    // 3.2s IWDG reset T = 4000 / (40000 / 32 = 1250)
     IWDG_WriteAccessCmd (IWDG_WriteAccess_Enable);
     IWDG_SetPrescaler (IWDG_Prescaler_32);
-    IWDG_SetReload (4000);
+    IWDG_SetReload (reload);
     IWDG_ReloadCounter ();
     IWDG_Enable ();
 }
@@ -82,70 +83,16 @@ void port_init (void)
 }
 
 /*---------------------------------------------------------------------------*/
-void tass805m_init (void)
-{
-    uint8_t wd;
-    // codec change mode powerdown(disable) to deep sleep mode.
-    // changing modes requires a 10ms delay.
-    digitalWrite (PORT_CODEC_PWREN, HIGH);  delay(10);
-
-    // codec change mode deep sleep to hi-z mode (DSP enable)
-    // changing modes requires a 10ms delay.
-    wd = STATE_HI_Z;
-    i2c_send (I2C_ADDR_CODEC, CODEC_REG_DEVICE_CTRL, &wd, 1);   delay(10);
-
-    // set volume data
-    i2c_send (I2C_ADDR_CODEC, CODEC_REG_DGAIN, &DigitalVolume, 1);
-    i2c_send (I2C_ADDR_CODEC, CODEC_REG_AGAIN, &AnalogVolume,  1);
-
-    // codec change mode hi-z to play mode
-    // changing modes requires a 10ms delay.
-    wd = STATE_PLAY;
-    i2c_send (I2C_ADDR_CODEC, CODEC_REG_DEVICE_CTRL, &wd, 1);   delay(10);
-}
-
-/*---------------------------------------------------------------------------*/
-void key_init (void)
-{
-//    adc_key_add  (key num(0~9), key_event_code (1~255), key_adc_max_mv, key_adc_min_volt);
-    adc_key_init (PORT_ADC_KEY, 3300);
-    adc_key_add  (0, EVENT_D_VOL_UP, 3300, 3200);   // 3300
-    adc_key_add  (1, EVENT_A_VOL_UP, 3100, 2900);   // 3000
-    adc_key_add  (2, EVENT_B_VAL_UP, 2800, 2600);   // 2700
-    // touch reset
-    adc_key_add  (3, EVENT_T_RESET , 2400, 2200);   // 2320
-
-    adc_key_add  (4, EVENT_D_VOL_DN, 2100, 1900);   // 1980
-    adc_key_add  (5, EVENT_A_VOL_DN, 1700, 1500);   // 1650
-    adc_key_add  (6, EVENT_B_VAL_DN, 1400, 1200);   // 1320
-    // system reboot
-    adc_key_add  (7, EVENT_S_RESET , 1100, 900);    // 1000
-}
-
-/*---------------------------------------------------------------------------*/
 void setup() {
     port_init ();
 
     // Wait serial port ready.
-    delay(1000);
-    USBSerial_println ("\r\n");
-
-    // Debug port info display
-#if defined (_DEBUG_UART_PORT_)
-    USBSerial_println ("DEBUG_UART : PORT = %d, BUAD = %d",
+    USBSerial_print ("\r\n*** BOOT ***\r\n");
+    // F/W & Debug info display
+    USBSerial_print ("DEBUG_UART : PORT = %d, BUAD = %d\r\n",
         _DEBUG_UART_PORT_, _DEBUG_UART_BAUD_);
-#else
-    USBSerial_println ("DEBUG_UART : PORT = none, BUAD = none");
-#endif
-
-#if defined (_FW_VERSION_STR_)
-    USBSerial_println ("FW_VERSION : %s", _FW_VERSION_STR_);
-#else
-    USBSerial_println ("FW_VERSION : V???");
-#endif
-    /* USB Serial data init, boot msg send */
-    USBSerial_println (__DATE__" " __TIME__ );
-    USBSerial_println ("@S-OK#");
+    USBSerial_print ("FW_VERSION : %s\r\n", _FW_VERSION_STR_);
+    USBSerial_print ("Build Date = "__DATE__" " __TIME__ "\r\n");
 
     // get platform save data from eeprom
     // DigitalVolume, AnalogVolume, Brigntness
@@ -157,14 +104,21 @@ void setup() {
     // hdmi2lvds init
     lt8619c_init ();
 
-    // backlight (94Khz init)
+    HDMI_Signal = lt8619c_loop();
+    printf ("Boot HDMI_Signal = %d\r\n", HDMI_Signal);
+
+    // backlight (94Khz init), Default brightness = OFF
     backlight_init (PORT_BACKLIGHT_PWM);
 
-    // ADC key init
-    key_init();
+    // ADC key init : adc_key_init (uint16_t adc_port, uint16_t ref_volt)
+    adc_key_init (PORT_ADC_KEY, 3300);
 
     /* VU12 System watchdog enable */
-    watchdog_setup ();
+    watchdog_setup (WDT_RELOAD_3_2_S);
+
+    /* Protocol F/W Start */
+    USBSerial_println ("");
+    USBSerial_print ("@S-OK#\r\n");
 }
 
 /*---------------------------------------------------------------------------*/
@@ -172,20 +126,19 @@ void loop() {
     /* system watchdog */
     WDT_CLR();
 
-    /* serial data check */
+    /* serial data read & write check */
     if (USBSerial_available())
         protocol_data_check();
 
     /* lt8619c check loop (1 sec) */
     if (MillisCheck + PERIOD_LT8619C_LOOP < millis()) {
         if (!lt8619c_loop()) {
-#if !defined (_DEBUG_DEV_BOARD_)
             backlight_control (0);  HDMI_Signal = 0;
-#endif
             alive_led ();
         } else {
-            if (HDMI_Signal > HDMI_SIGNAL_STABLE)
+            if (HDMI_Signal > HDMI_SIGNAL_STABLE) {
                 backlight_control (Brightness);
+            }
             else {
                 if (!HDMI_Signal)
                     lt8619c_init ();
@@ -194,15 +147,6 @@ void loop() {
             }
             digitalWrite (PORT_ALIVE_LED, LOW);
         }
-#if defined (_DEBUG_DEV_BOARD_)
-        // gpio i2c test (weather board 2, bme150 rev read)
-        {
-            uint8_t rev = 0;
-            if (i2c_read (0x76<<1, 0xD0, &rev, 1))
-                printf ("Millis error rate = %d, MillisCheck = %d, bme150 rev = 0x%02x\r\n",
-                    millis() - (MillisCheck + PERIOD_LT8619C_LOOP), MillisCheck, rev);
-        }
-#endif
         MillisCheck = millis ();
     }
     /* adc key process */

@@ -292,14 +292,18 @@ bool        lt8619c_clk_detect      (void)
 
             if ( rd ) {
                 pLT8619C_RXStatus->flag_RXPLLLocked = true;
-                //USBSerial_println ("LT8619C clk detected!!!");
-                //USBSerial_println ("LT8619C pll lock!!!");
+#if defined (_DEBUG_LT8619C_)
+                printf ("LT8619C clk detected!!!\r\n");
+                printf ("LT8619C pll lock!!!\r\n");
+#endif
                 return true;
             } else {
                 pLT8619C_RXStatus->flag_RXPLLLocked = false;
                 memset (pLT8619C_RXStatus, 0, sizeof(LT8619C_RXStatus));
-                //USBSerial_println ("LT8619C clk detected!!!");
-                //USBSerial_println ("LT8619C pll unlock#####");
+#if defined (_DEBUG_LT8619C_)
+                printf ("LT8619C clk detected!!!\r\n");
+                printf ("LT8619C pll unlock#####\r\n");
+#endif
                 return false;
             }
         } else {
@@ -312,15 +316,17 @@ bool        lt8619c_clk_detect      (void)
             } else {
                 pLT8619C_RXStatus->flag_RXPLLLocked = true;
                 memset (pLT8619C_RXStatus, 0, sizeof(LT8619C_RXStatus));
-                // USBSerial_println ("LT8619C pll unlock#####$$");
+#if defined (_DEBUG_LT8619C_)
+                printf ("LT8619C pll unlock!!!####$$\r\n");
+#endif
                 return false;
             }
         }
     } else {
-        //if( pLT8619C_RXStatus->flag_RXClkStable )
-        //{
-        //    USBSerial_println ("LT8619C clk disappear!!!");
-        //}
+#if defined (_DEBUG_LT8619C_)
+        if( pLT8619C_RXStatus->flag_RXClkStable )
+            printf ("LT8619C clk disappear!!!\r\n");
+#endif
         memset (pLT8619C_RXStatus, 0, sizeof(LT8619C_RXStatus));
         return false;
     }
@@ -333,20 +339,28 @@ void        lt8619c_get_info        (void)
 
     lt8619c_i2c_write (0xFF, 0x80);
     if ( pLT8619C_RXStatus->flag_RXClkStable && pLT8619C_RXStatus->flag_RXPLLLocked ) {
-        //USBSerial_println ("Hsync check start: ");
+#if defined (_DEBUG_LT8619C_)
+        printf ("Hsync check start: \r\n");
+#endif
         if ( lt8619c_i2c_read (0x13) & 0x01 ) {
-            //USBSerial_println ("LT8619C 8013[0]=1 !!!#####");
+#if defined (_DEBUG_LT8619C_)
+            // Hsync is detected, and is stable.
+            printf ("%d : LT8619C Hsync is stable.\r\n", millis());
+#endif
             if ( !pLT8619C_RXStatus->Flag_HsyncStable ) {
                 pLT8619C_RXStatus->Flag_HsyncStable = true;
 
                 for (cnt = 0; cnt < 8; cnt++) {
-                    //USBSerial_print ("Hsync check num: ");
-                    //USBSerial_println (loop_num, DEC);
+#if defined (_DEBUG_LT8619C_)
+                    printf ("Hsync check num: %d\r\n", cnt);
+#endif
                     delay (20);
                     if ( !(lt8619c_i2c_read (0x13) & 0x01) ) {
-                        //USBSerial_println ("LT8619C 8013[0]=0 !!!#####");
+#if defined (_DEBUG_LT8619C_)
+                        printf ("LT8619C 8013[0]=0 !!!#####\r\n");
+                        printf ("LT8619C Hsync stable Fail #####\r\n");
+#endif
                         pLT8619C_RXStatus->Flag_HsyncStable = false;
-                        //USBSerial_println ("LT8619C Hsync stable Fail #####");
                         break;
                     }
                 }
@@ -356,15 +370,19 @@ void        lt8619c_get_info        (void)
                     lt8619c_i2c_write (0x0D, rd & 0xF8);    //reset LVDS/BT fifo
                     lt8619c_i2c_write (0x0D, rd | 0x06);
                     lt8619c_i2c_write (0x0D, rd | 0x01);
-                    //USBSerial_println ("LT8619C Hsync stable!!!");
+#if defined (_DEBUG_LT8619C_)
+                    printf ("LT8619C Hsync stable!!!\r\n");
+#endif
                 }
             }
         } else {
-            //if ( pLT8619C_RXStatus->Flag_HsyncStable ) {
-                //USBSerial_println ("LT8619C Hsync stable to unstable#####");
-            //}
+#if defined (_DEBUG_LT8619C_)
+            if ( pLT8619C_RXStatus->Flag_HsyncStable )
+                printf ("LT8619C Hsync stable to unstable#####\r\n");
+
+            printf ("LT8619C Hsync always unstable#####\r\n");
+#endif
             pLT8619C_RXStatus->Flag_HsyncStable = false;
-            //USBSerial_println ("LT8619C Hsync always unstable#####");
         }
     }
     if ( pLT8619C_RXStatus->Flag_HsyncStable ) {
@@ -608,13 +626,11 @@ bool        lt8619c_loop            (void)
     bool status = false;
 
     if ( (status = lt8619c_clk_detect ()) ) {
-//        delay (100);
         delay (30);
         lt8619c_get_info ();
         lt8619c_csc_conv ();
         lt8619c_video_check ();
         lt8619c_bt_setting ();
-        // Debug_LT8619C_PrintRXinfo();
         // if (LT8619C_OUTPUTMODE ==  OUTPUT_LVDS_2_PORT)
         {
            lt8619c_lvds_detect ();
@@ -628,11 +644,10 @@ bool        lt8619c_check_id        (void)
 {
     lt8619c_i2c_write (0xFF, 0x60);
 
-    //USBSerial_println ("ChipID is OK:0x1604");
     if ( (lt8619c_i2c_read (0x00) == 0x16) && (lt8619c_i2c_read (0x01) == 0x04) )
         return true;
 
-    USBSerial_println("ERROR : LT8619C not found!");
+    USBSerial_print ("ERROR : LT8619C not found!\r\n");
     return false;
 }
 
@@ -652,9 +667,9 @@ void        lt8619c_init            (void)
     delay (300);
     lt8619c_set_hpd (true);
 
-    // #ifdef USE_EXTERNAL_HDCPKEY
+#if defined (USE_EXTERNAL_HDCPKEY)
     lt8619c_load_hdcpkey ();
-    // #endif
+#endif
 
     lt8619c_rx_init ();
     lt8619c_audio_init();

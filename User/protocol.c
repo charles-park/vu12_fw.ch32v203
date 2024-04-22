@@ -14,6 +14,7 @@
 
 #include "vu12_fw.h"
 #include "gpio_i2c.h"
+#include "tass805m.h"
 #include "backlight.h"
 #include "protocol.h"
 #include "eeprom.h"
@@ -34,6 +35,10 @@ void protocol_data_send     (char cmd, uint8_t data)
 {
     char f, m, l;
 
+#if defined(_DEBUG_PROTOCOL_)
+    printf ("Received cmd : %c, Response data: %d (0x%02x)\r\n",
+                cmd, data, data);
+#endif
     f = ('0' + (data / 100));   data %= 100;
     m = ('0' + (data / 10 ));   data %= 10 ;
     l = ('0' + (data      ));
@@ -49,32 +54,31 @@ void protocol_data_check    (void)
     for (i = 0; i < PROTOCOL_SIZE-1; i++)   Protocol[i] = Protocol[i+1];
     Protocol[PROTOCOL_SIZE-1] = USBSerial_read();
 
-#if defined(_DEBUG_USB_PROTOCOL_)
-    USBSerial_print ("%c", (char)Protocol[PROTOCOL_SIZE-1]);
+#if defined(_DEBUG_PROTOCOL_)
+    printf ("%c", (char)Protocol[PROTOCOL_SIZE-1]);
     if ((char)Protocol[PROTOCOL_SIZE-1] == '\r')
-        USBSerial_print ("\n");
+        printf ("\n");
+    fflush (stdout);
 #endif
-
     /* Header & Tail check */
     if ((Protocol[0] == '@') && (Protocol[PROTOCOL_SIZE-1] == '#')) {
+#if defined(_DEBUG_PROTOCOL_)
+    printf ("\r\n");
+#endif
         uint8_t data =
             (Protocol[2] - '0') * 100 + (Protocol[3] - '0') * 10 + Protocol[4] - '0';
 
-#if defined(_DEBUG_USB_PROTOCOL_)
-        USBSerial_print ("\r\n");
-#endif
         switch (Protocol[1]) {
             /* Digital volume request */
             case    'D':
-                if (eeprom_cfg_write (Protocol[1], Protocol[2], data)) {
-                    i2c_send (I2C_ADDR_CODEC, CODEC_REG_DGAIN, &DigitalVolume, 1);
-                }
+                if (eeprom_cfg_write (Protocol[1], Protocol[2], data))
+                    tass805m_write (CODEC_REG_DGAIN, &DigitalVolume);
                 data = DigitalVolume;
                 break;
             /* Analog volume request */
             case    'A':
                 if (eeprom_cfg_write (Protocol[1], Protocol[2], (data > 0x1F) ? 0x1F : data))
-                    i2c_send (I2C_ADDR_CODEC, CODEC_REG_AGAIN, &AnalogVolume, 1);
+                    tass805m_write (CODEC_REG_AGAIN, &AnalogVolume);
                 data = AnalogVolume;
                 break;
             /* Brightness value request */
@@ -83,26 +87,28 @@ void protocol_data_check    (void)
                     backlight_control (Brightness);
                 data = Brightness;
                 break;
+
             /* Firmware Version request */
             case    'F':
-#if defined(_FW_VERSION_STR_)
-                USBSerial_println("@%s#", _FW_VERSION_STR_);
-#else
-                USBSerial_println(PROTOCOL_FWVER_STR);
+                USBSerial_println("@%s#", _FW_VERSION_STR_);    // Makefile
+#if defined(_DEBUG_PROTOCOL_)
+                printf ("cmd : %c, @%s#",Protocol[1], _FW_VERSION_STR_);
 #endif
                 return;
-
             /* System self reset (watchdog timout reset) */
             case    'R':
             /* Factory Init, Default config set */
             case    'I':
-                if (Protocol[1] == 'I')  {
+                if (Protocol[1] == 'I')
                     eeprom_init (true);
-                    USBSerial_println("Factory Init. reboot...");
-                } else
-                    USBSerial_println(PROTOCOL_RESET_STR);
 
-                // watchdog reset
+#if defined(_DEBUG_PROTOCOL_)
+                printf ("cmd : %c, %s\r\n",
+                    Protocol[1], Protocol[1] == 'I' ? "EEPROM Init & Reboot" : "Reboot");
+#endif
+                USBSerial_println(PROTOCOL_RESET_STR);
+                // watchdog reset (watch set 1 sec)
+                watchdog_setup (WDT_RELOAD_1_S);
                 USBSerial_flush();  while (1);
                 break;
 
@@ -111,6 +117,9 @@ void protocol_data_check    (void)
                 touch_reset (data);
                 break;
             default:
+#if defined(_DEBUG_PROTOCOL_)
+                printf ("Unknown command!\r\n");
+#endif
                 return;
         }
         protocol_data_send (Protocol[1], data);

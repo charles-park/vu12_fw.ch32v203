@@ -19,18 +19,19 @@
 #include "backlight.h"
 #include "gpio_i2c.h"
 #include "lt8619c.h"
+#include "tass805m.h"
 #include "eeprom.h"
 #include "adc_key.h"
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-uint8_t  adc_key_init   (uint16_t adc_port, uint16_t ref_volt);
 uint8_t  adc_key_add    (uint16_t num, uint16_t key_code, uint16_t max_mv, uint16_t min_mv);
 uint8_t  adc_key_remove (uint16_t num);
 uint8_t  adc_key_repeat (uint16_t num, uint16_t repeat_ms);
 uint16_t adc_key_read   (bool b_clr);
 void     adc_key_check  (void);
 void     adc_key_loop   (void);
+uint8_t  adc_key_init   (uint16_t adc_port, uint16_t ref_volt);
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -42,10 +43,22 @@ uint64_t MillisCheckADC = 0;
 /*---------------------------------------------------------------------------*/
 uint8_t adc_key_init    (uint16_t adc_port, uint16_t ref_volt)
 {
-    KeyGrp.ref_volt = ref_volt;
-    KeyGrp.adc_port = adc_port;
+    KeyGrp.adc_port = adc_port; KeyGrp.ref_volt = ref_volt;
     KeyGrp.event    = 0;
     pinMode(adc_port, INPUT_ANALOG);
+
+ // adc_key_add  (key num(0~9), key_event_code (1~255), key_adc_max_mv, key_adc_min_volt);
+    adc_key_add (0, EVENT_D_VOL_UP, 3300, 3200);   // 3300
+    adc_key_add (1, EVENT_A_VOL_UP, 3100, 2900);   // 3000
+    adc_key_add (2, EVENT_B_VAL_UP, 2800, 2600);   // 2700
+    // touch reset
+    adc_key_add (3, EVENT_T_RESET , 2400, 2200);   // 2320
+
+    adc_key_add (4, EVENT_D_VOL_DN, 2100, 1900);   // 1980
+    adc_key_add (5, EVENT_A_VOL_DN, 1700, 1500);   // 1650
+    adc_key_add (6, EVENT_B_VAL_DN, 1400, 1200);   // 1320
+    // system reboot
+    adc_key_add (7, EVENT_S_RESET , 1100, 900);    // 1000
     return 1;
 }
 
@@ -106,33 +119,46 @@ void adc_key_check (void)
                 DigitalVolume = (key_code == EVENT_D_VOL_UP) ?
                                 DigitalVolume +1 : DigitalVolume -1;
                 if (eeprom_cfg_write ('D', 0, DigitalVolume))
-                    i2c_send (I2C_ADDR_CODEC, CODEC_REG_DGAIN, &DigitalVolume, 1);
+                    tass805m_write (CODEC_REG_DGAIN, &DigitalVolume);
+#if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : Digital volume = %d\r\n", __func__, DigitalVolume);
+#endif
                 break;
 
             case EVENT_A_VOL_UP:    case EVENT_A_VOL_DN:
                 AnalogVolume = (key_code == EVENT_A_VOL_UP) ?
                                 AnalogVolume +1 : AnalogVolume -1;
                 if (eeprom_cfg_write ('A', 0, AnalogVolume))
-                    i2c_send (I2C_ADDR_CODEC, CODEC_REG_AGAIN, &AnalogVolume, 1);
+                    tass805m_write (CODEC_REG_AGAIN, &AnalogVolume);
+#if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : Analog volume = %d\r\n", __func__, AnalogVolume);
+#endif
                 break;
 
             case EVENT_B_VAL_UP:    case EVENT_B_VAL_DN:
                 Brightness = (key_code == EVENT_B_VAL_UP) ?
-                                Brightness +10 : Brightness -10;
+//                                Brightness +10 : Brightness -10;
+                                Brightness +1 : Brightness -1;
                 if (eeprom_cfg_write ('B', 0, Brightness))
                     backlight_control (Brightness);
+#if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : Brightness value = %d\r\n", __func__, Brightness);
+#endif
                 break;
 
             case EVENT_S_RESET:
+#if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : System reboot\r\n", __func__);
+#endif
+                // watchdog reset (watch set 1 sec)
+                watchdog_setup (WDT_RELOAD_1_S);
                 while (1);
                 break;
 
             case EVENT_T_RESET:
+#if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : Touch reset\r\n", __func__);
+#endif
                 touch_reset (200);
                 break;
         }
@@ -166,6 +192,5 @@ void adc_key_loop       (void)
     }
 }
 
-/*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/

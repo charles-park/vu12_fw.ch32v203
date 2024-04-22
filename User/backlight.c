@@ -33,6 +33,9 @@ uint8_t backlight_init      (uint16_t pwm_port)
 {
     PortPWM = pwm_port;
     analogWrite(PortPWM, 0);
+#if defined (_DEBUG_BACKLIGHT_)
+    printf ("%s : port = %d\r\n", __func__, pwm_port);
+#endif
     return 1;
 }
 
@@ -41,8 +44,21 @@ uint8_t backlight_init      (uint16_t pwm_port)
 /*---------------------------------------------------------------------------*/
 uint8_t backlight_control   (uint8_t brightness)
 {
-    analogWrite(PortPWM, brightness);
+//    analogWrite(PortPWM, brightness);
+    switch (brightness) {
+        case 250 ... 255:
+        case 0:
+            pinMode (PortPWM, OUTPUT);
+            digitalWrite (PortPWM, brightness ? 1 : 0);
+            break;
+        default :
+            analogWrite (PortPWM, (brightness +4));
+            break;
+    }
     // save backlight data
+#if defined (_DEBUG_BACKLIGHT_)
+    printf ("%s : brightness = %d\r\n", __func__, brightness);
+#endif
     return 1;
 }
 

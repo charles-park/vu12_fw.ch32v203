@@ -39,6 +39,15 @@ void eeprom_read (uint32_t page_addr, uint32_t *r_buf)
     for (int32_t i = 0; i < FLASH_PAGE_SIZE / sizeof(uint32_t); i++) {
         r_buf [i] = (*(uint32_t *)(page_addr + (i * 4)));
     }
+#if defined(_DEBUG_EEPROM_)
+    printf ("%s : page addr = 0x%08X\r\n", __func__, page_addr);
+
+    for (int32_t i = 0; i < FLASH_PAGE_SIZE / sizeof(uint32_t); i++) {
+        if (i && ((i % 8) == 0))    printf ("\r\n");
+        printf ("0x%08X ", r_buf[i]);
+    }
+    printf ("\r\n");
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -48,6 +57,15 @@ void eeprom_write (uint32_t page_addr, uint32_t *w_buf)
     FLASH_ErasePage_Fast   (page_addr);
     FLASH_ProgramPage_Fast (page_addr, w_buf);
     FLASH_Lock_Fast ();
+#if defined(_DEBUG_EEPROM_)
+    printf ("%s : page addr = 0x%08X\r\n", __func__, page_addr);
+
+    for (int32_t i = 0; i < FLASH_PAGE_SIZE / sizeof(uint32_t); i++) {
+        if (i && ((i % 8) == 0))    printf ("\r\n");
+        printf ("0x%08X ", w_buf[i]);
+    }
+    printf ("\r\n");
+#endif
 }
 
 /*---------------------------------------------------------------------------*/

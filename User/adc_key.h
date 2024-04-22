@@ -74,13 +74,13 @@ struct adc_key_grp {
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-extern  uint8_t  adc_key_init   (uint16_t adc_port, uint16_t ref_volt);
 extern  uint8_t  adc_key_add    (uint16_t num, uint16_t key_code, uint16_t max_mv, uint16_t min_mv);
 extern  uint8_t  adc_key_remove (uint16_t num);
 extern  uint8_t  adc_key_repeat (uint16_t num, uint16_t repeat_ms);
 extern  void     adc_key_info   (void);
 extern  uint16_t adc_key_read   (bool b_clr);
 extern  void     adc_key_loop   (void);
+extern  uint8_t  adc_key_init   (uint16_t adc_port, uint16_t ref_volt);
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
