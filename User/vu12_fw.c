@@ -133,6 +133,9 @@ void loop() {
 
     /* lt8619c check loop (1 sec) */
     if (MillisCheck + PERIOD_LT8619C_LOOP < millis()) {
+#if defined (_DEBUG_VU12_FW_)
+    printf ("millis (%d) : ", millis());
+#endif
         // lt8619 status check
         if (!lt8619c_loop()) {
             backlight_control (0);  tass805m_mute();
@@ -142,19 +145,32 @@ void loop() {
             digitalWrite (PORT_ALIVE_LED, LOW);
 
         switch (HDMI_Signal) {
-            case     eSTATUS_NO_SIGNAL:
+            case eSTATUS_NO_SIGNAL: case eSTATUS_SIGNAL_STABLE:
+#if defined (_DEBUG_VU12_FW_)
+    printf ("%s\r\n", (HDMI_Signal == eSTATUS_NO_SIGNAL) ?
+                    "eSTATUS_NO_SIGNAL" : "eSTATUS_SIGNAL_STABLE");
+#endif
                 HDMI_Signal = (HDMI_Signal == eSTATUS_NO_SIGNAL) ?
                         eSTATUS_SIGNAL_DETECT : eSTATUS_SIGNAL_STABLE;
                 break;
             case eSTATUS_SIGNAL_DETECT:
+#if defined (_DEBUG_VU12_FW_)
+    printf ("eSTATUS_SIGNAL_DETECT\r\n");
+#endif
                 lt8619c_init ();
                 HDMI_Signal = eSTATUS_AUDIO_INIT;
                 break;
             case eSTATUS_AUDIO_INIT:
+#if defined (_DEBUG_VU12_FW_)
+    printf ("eSTATUS_AUDIO_INIT\r\n");
+#endif
                 tass805m_write (CODEC_REG_DGAIN, &DigitalVolume);
                 HDMI_Signal = eSTATUS_BACKLIGHT_INIT;
                 break;
             case eSTATUS_BACKLIGHT_INIT:
+#if defined (_DEBUG_VU12_FW_)
+    printf ("eSTATUS_BACKLIGHT_INIT\r\n");
+#endif
                 backlight_control (Brightness);
                 HDMI_Signal = eSTATUS_SIGNAL_STABLE;
                 break;

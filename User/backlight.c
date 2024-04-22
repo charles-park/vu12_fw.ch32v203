@@ -44,15 +44,14 @@ uint8_t backlight_init      (uint16_t pwm_port)
 /*---------------------------------------------------------------------------*/
 uint8_t backlight_control   (uint8_t brightness)
 {
-//    analogWrite(PortPWM, brightness);
     switch (brightness) {
-        case 250 ... 255:
-        case 0:
+        case 0 ... 3:
+        case 255:
             pinMode (PortPWM, OUTPUT);
-            digitalWrite (PortPWM, brightness ? 1 : 0);
+            digitalWrite (PortPWM, (brightness == 255) ? 1 : 0);
             break;
         default :
-            analogWrite (PortPWM, (brightness +4));
+            analogWrite (PortPWM, (brightness));
             break;
     }
     // save backlight data
