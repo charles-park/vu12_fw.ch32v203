@@ -626,7 +626,7 @@ bool        lt8619c_loop            (void)
     bool status = false;
 
     if ( (status = lt8619c_clk_detect ()) ) {
-        delay (30);
+        delay (50);
         lt8619c_get_info ();
         lt8619c_csc_conv ();
         lt8619c_video_check ();

@@ -60,8 +60,15 @@ extern "C"
 #define A_VOL_DEFAULT       0x00    // 0 dB
 #define B_VAL_DEFAULT       0x80    // middle brightness
 
-// #define MIN_BRIGHTNESS      10
-#define HDMI_SIGNAL_STABLE  1
+// HDMI2LVDS Signal status
+enum {
+    eSTATUS_NO_SIGNAL = 0,
+    eSTATUS_SIGNAL_DETECT,
+    eSTATUS_AUDIO_INIT,
+    eSTATUS_BACKLIGHT_INIT,
+    eSTATUS_SIGNAL_STABLE,
+    eSTATUS_END
+};
 
 /*---------------------------------------------------------------------------*/
 extern  uint8_t DigitalVolume, AnalogVolume, Brightness;

@@ -39,6 +39,16 @@ uint16_t tass805m_read (uint8_t reg, uint8_t *value)
 }
 
 /*---------------------------------------------------------------------------*/
+void tass805m_mute (void)
+{
+    uint8_t mute_val = 0xFF;
+    tass805m_write (CODEC_REG_DGAIN, &mute_val);
+#if defined (_DEBUG_TASS805M_)
+    printf ("%s \r\n", __func__);
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
 void tass805m_init (void)
 {
     uint8_t wd;
@@ -52,7 +62,7 @@ void tass805m_init (void)
     tass805m_write (CODEC_REG_DEVICE_CTRL, &wd);   delay(10);
 
     // set volume data
-    tass805m_write (CODEC_REG_DGAIN, &DigitalVolume);
+    tass805m_mute ();
     tass805m_write (CODEC_REG_AGAIN, &AnalogVolume);
 
     // codec change mode hi-z to play mode

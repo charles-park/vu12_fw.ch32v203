@@ -70,14 +70,7 @@ void Timer3_irq_init (void)
 /* Freq = Systemclk / (PWM_DEFAULT_ARR) / (PWM_DEFAULT_PCS +1) */
 /*---------------------------------------------------------------------------*/
 #define PWM_DEFAULT_ARR 256
-//#define PWM_DEFAULT_PCS 3 - Fail (005) 93.75Khz
-//#define PWM_DEFAULT_PCS 9   // 38Khz (Analog dimming)
-//#define PWM_DEFAULT_PCS 2   // 125Khz (Analog dimming)
-//#define PWM_DEFAULT_PCS 5   // 125Khz (Analog dimming)
-
-//#define PWM_DEFAULT_PCS 15  // 23 Khz..OK
-
-#define PWM_DEFAULT_PCS 15  // 23 Khz..OK
+#define PWM_DEFAULT_PCS 15  // 23 Khz(Analog dimming)
 
 void PWM_init (enum gpio_pins pin, u8 ccp)
 {

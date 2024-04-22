@@ -21,7 +21,7 @@
 uint32_t    flash_page_addr     (uint32_t page);
 uint8_t     eeprom_init         (bool force_init);
 void        eeprom_cfg_read     (uint32_t page_addr);
-uint8_t     eeprom_cfg_write    (char data, char read, uint8_t val);
+uint8_t     eeprom_cfg_write    (char cfg_type, uint8_t val);
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -115,7 +115,7 @@ uint8_t eeprom_init     (bool force_init)
 }
 
 /*---------------------------------------------------------------------------*/
-uint8_t eeprom_cfg_write (char data, char read, uint8_t val)
+uint8_t eeprom_cfg_write    (char cfg_type, uint8_t val)
 {
     uint32_t rw_buf[FLASH_PAGE_SIZE / sizeof(uint32_t)];
 
@@ -123,10 +123,10 @@ uint8_t eeprom_cfg_write (char data, char read, uint8_t val)
     eeprom_read (flash_page_addr(WriteCfgPage), rw_buf);
 
     // read only check
-    if ((flash_page_addr(WriteCfgPage) >= FLASH_END_ADDR) || (read == '?'))
+    if (flash_page_addr(WriteCfgPage) >= FLASH_END_ADDR)
         return 0;
 
-    switch (data) {
+    switch (cfg_type) {
         case    'D':    rw_buf [OFFSET_D_VOL] = DigitalVolume  = val;   break;
         case    'A':    rw_buf [OFFSET_A_VOL] = AnalogVolume   = val;   break;
         case    'B':    rw_buf [OFFSET_B_VAL] = Brightness     = val;   break;

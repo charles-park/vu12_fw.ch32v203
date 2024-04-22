@@ -118,8 +118,8 @@ void adc_key_check (void)
             case EVENT_D_VOL_UP:    case EVENT_D_VOL_DN:
                 DigitalVolume = (key_code == EVENT_D_VOL_UP) ?
                                 DigitalVolume +1 : DigitalVolume -1;
-                if (eeprom_cfg_write ('D', 0, DigitalVolume))
-                    tass805m_write (CODEC_REG_DGAIN, &DigitalVolume);
+                tass805m_write (CODEC_REG_DGAIN, &DigitalVolume);
+                eeprom_cfg_write ('D', DigitalVolume);
 #if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : Digital volume = %d\r\n", __func__, DigitalVolume);
 #endif
@@ -128,8 +128,8 @@ void adc_key_check (void)
             case EVENT_A_VOL_UP:    case EVENT_A_VOL_DN:
                 AnalogVolume = (key_code == EVENT_A_VOL_UP) ?
                                 AnalogVolume +1 : AnalogVolume -1;
-                if (eeprom_cfg_write ('A', 0, AnalogVolume))
-                    tass805m_write (CODEC_REG_AGAIN, &AnalogVolume);
+                tass805m_write (CODEC_REG_AGAIN, &AnalogVolume);
+                eeprom_cfg_write ('A', AnalogVolume);
 #if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : Analog volume = %d\r\n", __func__, AnalogVolume);
 #endif
@@ -139,8 +139,8 @@ void adc_key_check (void)
                 Brightness = (key_code == EVENT_B_VAL_UP) ?
 //                                Brightness +10 : Brightness -10;
                                 Brightness +1 : Brightness -1;
-                if (eeprom_cfg_write ('B', 0, Brightness))
-                    backlight_control (Brightness);
+                backlight_control (Brightness);
+                eeprom_cfg_write ('B', Brightness);
 #if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : Brightness value = %d\r\n", __func__, Brightness);
 #endif
@@ -150,6 +150,8 @@ void adc_key_check (void)
 #if defined(_DEBUG_ADC_KEY_)
                 printf ("%s : System reboot\r\n", __func__);
 #endif
+                // backlight off, audio off
+                backlight_control(0);   tass805m_mute();
                 // watchdog reset (watch set 1 sec)
                 watchdog_setup (WDT_RELOAD_1_S);
                 while (1);

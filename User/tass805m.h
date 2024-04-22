@@ -37,6 +37,7 @@ enum codec_state {
 /*---------------------------------------------------------------------------*/
 extern  uint16_t    tass805m_write  (uint8_t reg, uint8_t *value);
 extern  uint16_t    tass805m_read   (uint8_t reg, uint8_t *value);
+extern  void        tass805m_mute   (void);
 extern  void        tass805m_init   (void);
 
 /*---------------------------------------------------------------------------*/

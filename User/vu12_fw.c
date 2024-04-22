@@ -26,11 +26,11 @@
 /*---------------------------------------------------------------------------*/
 uint8_t DigitalVolume, AnalogVolume, Brightness;
 uint32_t MillisCheck = 0;
-uint8_t HDMI_Signal = 0;
+uint8_t HDMI_Signal = eSTATUS_NO_SIGNAL;
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-void alive_led (void)
+void blink_status_led (void)
 {
     digitalWrite (PORT_ALIVE_LED, !digitalRead(PORT_ALIVE_LED));
 }
@@ -104,7 +104,8 @@ void setup() {
     // hdmi2lvds init
     lt8619c_init ();
 
-    HDMI_Signal = lt8619c_loop();
+    HDMI_Signal = lt8619c_loop() > 0 ?
+                    eSTATUS_SIGNAL_DETECT : eSTATUS_NO_SIGNAL;
     printf ("Boot HDMI_Signal = %d\r\n", HDMI_Signal);
 
     // backlight (94Khz init), Default brightness = OFF
@@ -132,20 +133,33 @@ void loop() {
 
     /* lt8619c check loop (1 sec) */
     if (MillisCheck + PERIOD_LT8619C_LOOP < millis()) {
+        // lt8619 status check
         if (!lt8619c_loop()) {
-            backlight_control (0);  HDMI_Signal = 0;
-            alive_led ();
-        } else {
-            if (HDMI_Signal > HDMI_SIGNAL_STABLE) {
-                backlight_control (Brightness);
-            }
-            else {
-                if (!HDMI_Signal)
-                    lt8619c_init ();
-
-                HDMI_Signal++;
-            }
+            backlight_control (0);  tass805m_mute();
+            HDMI_Signal = eSTATUS_NO_SIGNAL;
+            blink_status_led ();
+        } else
             digitalWrite (PORT_ALIVE_LED, LOW);
+
+        switch (HDMI_Signal) {
+            case     eSTATUS_NO_SIGNAL:
+                HDMI_Signal = (HDMI_Signal == eSTATUS_NO_SIGNAL) ?
+                        eSTATUS_SIGNAL_DETECT : eSTATUS_SIGNAL_STABLE;
+                break;
+            case eSTATUS_SIGNAL_DETECT:
+                lt8619c_init ();
+                HDMI_Signal = eSTATUS_AUDIO_INIT;
+                break;
+            case eSTATUS_AUDIO_INIT:
+                tass805m_write (CODEC_REG_DGAIN, &DigitalVolume);
+                HDMI_Signal = eSTATUS_BACKLIGHT_INIT;
+                break;
+            case eSTATUS_BACKLIGHT_INIT:
+                backlight_control (Brightness);
+                HDMI_Signal = eSTATUS_SIGNAL_STABLE;
+                break;
+            default :
+                break;
         }
         MillisCheck = millis ();
     }

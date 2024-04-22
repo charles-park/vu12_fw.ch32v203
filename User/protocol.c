@@ -69,23 +69,33 @@ void protocol_data_check    (void)
             (Protocol[2] - '0') * 100 + (Protocol[3] - '0') * 10 + Protocol[4] - '0';
 
         switch (Protocol[1]) {
-            /* Digital volume request */
             case    'D':
-                if (eeprom_cfg_write (Protocol[1], Protocol[2], data))
-                    tass805m_write (CODEC_REG_DGAIN, &DigitalVolume);
-                data = DigitalVolume;
+                /* Digital volume range (0 ~ 255) */
+                if (Protocol[2] == '?')
+                    data = DigitalVolume;
+                else {
+                    tass805m_write (CODEC_REG_DGAIN, &data);
+                    eeprom_cfg_write ('D', data);
+                }
                 break;
-            /* Analog volume request */
             case    'A':
-                if (eeprom_cfg_write (Protocol[1], Protocol[2], (data > 0x1F) ? 0x1F : data))
-                    tass805m_write (CODEC_REG_AGAIN, &AnalogVolume);
-                data = AnalogVolume;
+                /* Analog volume range (0 ~ 0x1F)*/
+                if (Protocol[2] == '?')
+                    data = AnalogVolume;
+                else {
+                    data = (data > 0x1F) ? 0x1F : data;
+                    tass805m_write (CODEC_REG_AGAIN, &data);
+                    eeprom_cfg_write ('A', data);
+                }
                 break;
-            /* Brightness value request */
             case    'B':
-                if (eeprom_cfg_write (Protocol[1], Protocol[2], data))
-                    backlight_control (Brightness);
-                data = Brightness;
+                /* Brightness value range (0 ~ 255) */
+                if (Protocol[2] == '?')
+                    data = Brightness;
+                else {
+                    backlight_control (data);
+                    eeprom_cfg_write ('B', data);
+                }
                 break;
 
             /* Firmware Version request */
@@ -107,6 +117,8 @@ void protocol_data_check    (void)
                     Protocol[1], Protocol[1] == 'I' ? "EEPROM Init & Reboot" : "Reboot");
 #endif
                 USBSerial_println(PROTOCOL_RESET_STR);
+                // backlight off, audio off
+                backlight_control(0);   tass805m_mute();
                 // watchdog reset (watch set 1 sec)
                 watchdog_setup (WDT_RELOAD_1_S);
                 USBSerial_flush();  while (1);
