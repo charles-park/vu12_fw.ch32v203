@@ -73,7 +73,7 @@ void port_init (void)
     // codec
     pinMode (PORT_CODEC_PWREN, OUTPUT); digitalWrite (PORT_CODEC_PWREN, LOW);
     // touch
-    pinMode (PORT_TOUCH_RESET, OUTPUT); touch_reset (100);
+    pinMode (PORT_TOUCH_RESET, OUTPUT); digitalWrite (PORT_TOUCH_RESET, LOW);
     // pwm
     pinMode (PORT_BACKLIGHT_PWM, OUTPUT);
     digitalWrite (PORT_BACKLIGHT_PWM, LOW);
@@ -104,9 +104,7 @@ void setup() {
     // hdmi2lvds init
     lt8619c_init ();
 
-    HDMI_Signal = lt8619c_loop() > 0 ?
-                    eSTATUS_SIGNAL_DETECT : eSTATUS_NO_SIGNAL;
-    printf ("Boot HDMI_Signal = %d\r\n", HDMI_Signal);
+    HDMI_Signal = eSTATUS_NO_SIGNAL;
 
     // backlight (94Khz init), Default brightness = OFF
     backlight_init (PORT_BACKLIGHT_PWM);
@@ -138,9 +136,9 @@ void loop() {
 #endif
         // lt8619 status check
         if (!lt8619c_loop()) {
-            backlight_control (0);  tass805m_mute();
+            backlight_control (0);  tass805m_mute();    blink_status_led ();
+            digitalWrite (PORT_TOUCH_RESET, LOW);
             HDMI_Signal = eSTATUS_NO_SIGNAL;
-            blink_status_led ();
         } else
             digitalWrite (PORT_ALIVE_LED, LOW);
 
@@ -157,7 +155,6 @@ void loop() {
 #if defined (_DEBUG_VU12_FW_)
     printf ("eSTATUS_SIGNAL_DETECT\r\n");
 #endif
-                lt8619c_init ();
                 HDMI_Signal = eSTATUS_AUDIO_INIT;
                 break;
             case eSTATUS_AUDIO_INIT:
@@ -171,6 +168,7 @@ void loop() {
 #if defined (_DEBUG_VU12_FW_)
     printf ("eSTATUS_BACKLIGHT_INIT\r\n");
 #endif
+                touch_reset (200);
                 backlight_control (Brightness);
                 HDMI_Signal = eSTATUS_SIGNAL_STABLE;
                 break;
