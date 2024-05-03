@@ -72,8 +72,33 @@ Custom Modeline     Modeline "960x720_60" 45.302 960 968 1000 1040 720 727 735 7
 // Parameters
 // None, 1920, 720, 60, N, N, 8, RGB 4:4:4, N
 // CVT Timings
+#if 0
 const video_timing  lcd_timing = {
     111750,  // pixel clock(Khz)
+
+    // lcd horizontal data
+    96,     // hfp
+    192,    // hs
+    288,    // hbp
+    1920,   // hact = (real view area, 960 * 2(LVDS ch) = 1920)
+    2496,   // htotal = hact + hbp + hs + hfp
+
+    // lcd vertical data
+    3,      // vfp
+    10,     // vs
+    15,     // vbp
+    720,    // vact = (real view area, 720)
+    748     // vtotal = vact + vbp + vs + vfp
+};
+#endif
+
+// xu4 support edid.bin
+//
+// pixel clock support list
+// https://github.com/hardkernel/linux/blob/odroid-5.4.y/drivers/gpu/drm/exynos/exynos_hdmi.c#L396-L740
+//
+const video_timing  lcd_timing = {
+    115500,  // pixel clock(Khz) -> xu4 support pixel clock
 
     // lcd horizontal data
     96,     // hfp
@@ -167,6 +192,11 @@ int main ()
     printf ("\r\n");
     printf ("EDID[127](chksum 0 ~ 126) = 0x%02x\r\n", lt8619c_edid_checksum (0, &ONCHIP_EDID[0]));  //edid_check_sum;
     printf ("\r\n");
+    {
+        FILE *fp = fopen("edid.bin", "wb");
+        fwrite (ONCHIP_EDID, sizeof(ONCHIP_EDID), 1, fp);
+        fclose(fp);
+    }
     return 0;
 }
 /*---------------------------------------------------------------------------*/
