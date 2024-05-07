@@ -22,7 +22,7 @@ ch32V203 Debug serial port 설정
 HDMI Audio 테스트
 * Linux Alsa-utils를 활용하여 스피커 테스트 : https://yongeekd01.tistory.com/110
 
-HDMI EDID 생성
+HDMI EDID 생성 (https://wiki.odroid.com/common/hdmi_howto/custom_edid)
 1. https://tomverbeure.github.io/video_timings_calculator 에서 해상도에 맞는 parameter를 구함.
 2. 만약 지원하지 않는 pixel clock(ODROID-XU4)인 경우 가까운 clock중 높을 것을 사용함. (Refresh rate는 높아짐)
 3. 해당 parameter를 PC_APP.make_edid폴더안의 mk_edid.c에 아래와 같이 적용함.
