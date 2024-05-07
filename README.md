@@ -19,3 +19,41 @@ ch32v203 모델별 메모리 설정
 ch32V203 Debug serial port 설정
 * Debug 폴더안의 debug.h 파일 내용중 DEBUG_UARTx 설정
 
+HDMI Audio 테스트
+* Linux Alsa-utils를 활용하여 스피커 테스트 : https://yongeekd01.tistory.com/110
+
+HDMI EDID 생성
+1. https://tomverbeure.github.io/video_timings_calculator 에서 해상도에 맞는 parameter를 구함.
+2. 만약 지원하지 않는 pixel clock(ODROID-XU4)인 경우 가까운 clock중 높을 것을 사용함. (Refresh rate는 높아짐)
+3. 해당 parameter를 PC_APP.make_edid폴더안의 mk_edid.c에 아래와 같이 적용함.
+```
+
+// xu4 support edid.bin
+//
+// pixel clock support list
+// https://github.com/hardkernel/linux/blob/odroid-5.4.y/drivers/gpu/drm/exynos/exynos_hdmi.c#L396-L740
+//
+cconst video_timing  lcd_timing = {
+    /*
+    111750,  // pixel clock(Khz) -> refresh 60Hz pixel clock
+    */
+    115500,  // pixel clock(Khz) -> xu4 support pixel clock (refresh 61.9Hz)
+
+    // lcd horizontal data
+    96,     // hfp
+    192,    // hs
+    288,    // hbp
+    1920,   // hact = (real view area, 960 * 2(LVDS ch) = 1920)
+    2496,   // htotal = hact + hbp + hs + hfp
+
+    // lcd vertical data
+    3,      // vfp
+    10,     // vs
+    15,     // vbp
+    720,    // vact = (real view area, 720)
+    748     // vtotal = vact + vbp + vs + vfp
+};
+
+```
+4. build (gcc -o mk_edid mk_edid.c) 및 실행
+5. edid.bin파일 생성 및 화면에 edid data표시 (복사하여 firmware edid 배열 데이터로 사용함)
