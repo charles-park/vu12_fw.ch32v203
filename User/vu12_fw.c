@@ -84,7 +84,10 @@ void port_init (void)
 
 /*---------------------------------------------------------------------------*/
 void setup() {
-    port_init ();   delay (2000);
+    port_init ();
+
+#if defined(_DEBUG_VU12_FW_)
+    delay (2000);   // wait ttyACM
 
     // Wait serial port ready.
     USBSerial_print ("\r\n*** BOOT ***\r\n");
@@ -93,6 +96,7 @@ void setup() {
         _DEBUG_UART_PORT_, _DEBUG_UART_BAUD_);
     USBSerial_print ("FW_VERSION : %s\r\n", _FW_VERSION_STR_);
     USBSerial_print ("Build Date = "__DATE__" " __TIME__ "\r\n");
+#endif
 
     // get platform save data from eeprom
     // DigitalVolume, AnalogVolume, Brigntness

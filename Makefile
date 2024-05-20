@@ -15,15 +15,15 @@ TARGET_HEX  ?= $(TARGET_NAME).hex
 TARGET_BIN  ?= $(TARGET_NAME).bin
 
 # Release F/W Version string
-DEF_FLAGS += -D_FW_VERSION_STR_=\"V092\"
+DEF_FLAGS += -D_FW_VERSION_STR_=\"V093\"
 
 # Serial debug port define. (PA2-Tx, PA3-Rx)
 DEF_FLAGS += -D_DEBUG_UART_PORT_=2 -D_DEBUG_UART_BAUD_=115200
 
 # Protocol.c message debug
-DEF_FLAGS += -D_DEBUG_PROTOCOL_ -D_DEBUG_VU12_FW_
+# DEF_FLAGS += -D_DEBUG_PROTOCOL_ -D_DEBUG_VU12_FW_
 # DEF_FLAGS += -D_DEBUG_LT8619C_ -D_DEBUG_GPIO_I2C_
-DEF_FLAGS += -D_DEBUG_ADC_KEY_ -D_DEBUG_EEPROM_
+# DEF_FLAGS += -D_DEBUG_ADC_KEY_ -D_DEBUG_EEPROM_
 # DEF_FLAGS += -D_DEBUG_TASS805M_ -D_DEBUG_BACKLIGHT_
 
 # /*---------------------------------------------------------------------------*/
