@@ -84,7 +84,7 @@ void port_init (void)
 
 /*---------------------------------------------------------------------------*/
 void setup() {
-    port_init ();
+    port_init ();   delay (2000);
 
     // Wait serial port ready.
     USBSerial_print ("\r\n*** BOOT ***\r\n");

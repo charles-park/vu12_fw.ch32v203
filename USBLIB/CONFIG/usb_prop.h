@@ -36,6 +36,7 @@
 
 
 //-----------------------------------------
+uint8_t USBSerial_ready (void);
 uint8_t USBSerial_read (void);
 uint16_t USBSerial_available (void);
 uint16_t USBSerial_print (char *fmt, ...);

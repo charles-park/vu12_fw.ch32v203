@@ -29,9 +29,12 @@ uint8_t USBD_Endp3_Busy = 0;
 uint8_t	USBSerialRxBuffer[DEF_USBD_MAX_PACK_SIZE * 4] = {0,};
 uint16_t USBSerialRxSP = 0, USBSerialRxEP = 0;
 
-/* 256 bytes */
-uint8_t	USBSerialTxBuffer[DEF_USBD_MAX_PACK_SIZE * 4] = {0,};
-uint16_t USBSerialTxSP = 0, USBSerialTxEP = 0;
+/*---------------------------------------------------------------------------*/
+uint8_t USBSerial_ready (void)
+{
+    // wait ttyACM ready... (USB devvice state check)
+    return 	(bDeviceState == CONFIGURED) ? 1 : 0;
+}
 
 /*---------------------------------------------------------------------------*/
 void USBSerialRxBufferWrite (uint8_t *buf, uint16_t len)
@@ -47,49 +50,8 @@ void USBSerialRxBufferWrite (uint8_t *buf, uint16_t len)
 }
 
 /*---------------------------------------------------------------------------*/
-void USBSerialTxBufferWrite (uint8_t *buf, uint16_t len)
-{
-	int16_t i;
-	for (i = 0; i < len; i++) {
-		USBSerialTxBuffer [USBSerialTxEP] = buf [i];
-		USBSerialTxEP++;	USBSerialTxEP %= sizeof (USBSerialTxBuffer);
-		if (USBSerialTxSP == USBSerialTxEP) {
-			USBSerialTxSP++;	USBSerialTxSP %= sizeof (USBSerialTxBuffer);
-		}
-	}
-}
-
-/*---------------------------------------------------------------------------*/
-uint8_t USBSerialTxBufferCheck (void)
-{
-	if ((USBSerialTxSP != USBSerialTxEP) && (!USBD_Endp3_Busy)) {
-		USBD_ENDPx_DataUp( ENDP3, &USBSerialTxBuffer[USBSerialTxSP], 1 );
-		USBSerialTxSP++;	USBSerialTxSP %= sizeof (USBSerialTxBuffer);
-	}
-	return USBD_Endp3_Busy;
-}
-
-/*---------------------------------------------------------------------------*/
-uint16_t USBSerialRxBufferCheck (void)
-{
-	if (USBSerialRxSP != USBSerialRxEP) {
-		if (USBSerialRxSP > USBSerialRxEP)
-			return (USBSerialRxEP + sizeof(USBSerialRxBuffer) - USBSerialRxSP);
-		else
-			return (USBSerialRxEP - USBSerialRxSP);
-	}
-	return 0;
-}
-
-/*---------------------------------------------------------------------------*/
 void USBSerial_flush (void)
 {
-	uint16_t w = 0;
-	/* wait sp == ep */
-	while ((w++ < 10) && (USBSerialTxEP != USBSerialTxSP)) {
-		if (USBSerialTxBufferCheck ())	udelay(100);
-		else							w = 0;
-	}
 }
 
 /*---------------------------------------------------------------------------*/
@@ -104,11 +66,13 @@ uint8_t USBSerial_read (void)
 /*---------------------------------------------------------------------------*/
 uint16_t USBSerial_available (void)
 {
-	// Tx buffer check
-	USBSerialTxBufferCheck ();
-
-	// Rx buffer check
-	return USBSerialRxBufferCheck();
+	if (USBSerialRxSP != USBSerialRxEP) {
+		if (USBSerialRxSP > USBSerialRxEP)
+			return (USBSerialRxEP + sizeof(USBSerialRxBuffer) - USBSerialRxSP);
+		else
+			return (USBSerialRxEP - USBSerialRxSP);
+	}
+	return 0;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -126,7 +90,9 @@ uint16_t USBSerial_print (char *fmt, ...)
 
 	len = strlen(buf);
 
-	USBSerialTxBufferWrite (buf, len);
+	if (USBSerial_ready ())
+		while (USBD_ENDPx_DataUp( ENDP3, buf, len) != USB_SUCCESS)	;
+
 	return len;
 }
 
