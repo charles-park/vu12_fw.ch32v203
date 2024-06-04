@@ -89,6 +89,9 @@ uint16_t USBSerial_print (char *fmt, ...)
 	va_end (va);
 
 	len = strlen(buf);
+    
+    /* Wait USB Busy */
+    if (USBD_Endp3_Busy)    delay(1);
 
 	if (USBSerial_ready () && !USBD_Endp3_Busy)
 		while (USBD_ENDPx_DataUp( ENDP3, buf, len) != USB_SUCCESS)	;
