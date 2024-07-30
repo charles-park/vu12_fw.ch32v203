@@ -53,12 +53,11 @@ extern "C"
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-#define PERIOD_LT8619C_LOOP     1000
+#define PERIOD_LT8619C_LOOP 1000
 
-// #define D_VOL_DEFAULT   0x30    // 0 dB, 0xFF mute, 소리가 너무 큼
-#define D_VOL_DEFAULT       0x80    // -40 dB(default)
+#define D_VOL_DEFAULT       0x50    // -16 dB(default) (24db - value * 0.5)
 #define A_VOL_DEFAULT       0x00    // 0 dB
-#define B_VAL_DEFAULT       0x80    // middle brightness
+#define B_VAL_DEFAULT       0xFF    // middle brightness
 
 // Analog volume range 0 ~ 31 (0 ~ 0x1F)
 #define A_VOL_MASK          0x1F
