@@ -72,7 +72,7 @@ Custom Modeline     Modeline "960x720_60" 45.302 960 968 1000 1040 720 727 735 7
 // Parameters
 // None, 1920, 720, 60, N, N, 8, RGB 4:4:4, N
 // CVT Timings
-#if 0
+#if 1
 const video_timing  lcd_timing = {
     111750,  // pixel clock(Khz)
 
@@ -92,11 +92,13 @@ const video_timing  lcd_timing = {
 };
 #endif
 
+
 // xu4 support edid.bin
 //
 // pixel clock support list
 // https://github.com/hardkernel/linux/blob/odroid-5.4.y/drivers/gpu/drm/exynos/exynos_hdmi.c#L396-L740
 //
+#if 0
 const video_timing  lcd_timing = {
     115500,  // pixel clock(Khz) -> xu4 support pixel clock
 
@@ -114,6 +116,7 @@ const video_timing  lcd_timing = {
     720,    // vact = (real view area, 720)
     748     // vtotal = vact + vbp + vs + vfp
 };
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -158,14 +161,30 @@ uint8_t     lt8619c_edid_checksum   (uint8_t block, uint8_t *pbuf)
 }
 
 /*---------------------------------------------------------------------------*/
+// https://en.wikipedia.org/wiki/Extended_Display_Identification_Data#CTA-861
+// EDID 8 ~ 9 (Manafacturer ID)
+const char *Manufacturer = "HKD";
+// EDID 10 ~ 11 (Manafacturer product code)
+const short ProductCode = 0x0012;
+
+/*---------------------------------------------------------------------------*/
 int main ()
 {
     int i;
 
     lt8619c_edid_dtbcal (ONCHIP_EDID + 0x36, &lcd_timing);
+
+    ONCHIP_EDID [8]  = ((Manufacturer[0] - '@') << 2) & 0x7C;
+    ONCHIP_EDID [8] |= ((Manufacturer[1] - '@') >> 3) & 0x03;
+    ONCHIP_EDID [9]  = ((Manufacturer[1] - '@') << 5) & 0xE0;
+    ONCHIP_EDID [9] |= ((Manufacturer[2] - '@') & 0x1F);
+
+    ONCHIP_EDID [10] = (ProductCode     ) & 0xFF;
+    ONCHIP_EDID [11] = (ProductCode >> 8) & 0xFF;
+
     ONCHIP_EDID[127] = lt8619c_edid_checksum (0, &ONCHIP_EDID[0]);  //edid_check_sum;
 
-    printf ("\r\nCalculate EDID data [0 ~ 127]\r\n");
+    printf ("\r\nCalculate EDID data [0 ~ 127], Manufacturer = %s, Product code = %d\r\n", Manufacturer, ProductCode);
     printf ("\r\n");
     printf ("pix_clk = %d \r\n", lcd_timing.pix_clk);
     printf ("\r\n");

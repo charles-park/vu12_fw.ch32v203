@@ -15,7 +15,7 @@ TARGET_HEX  ?= $(TARGET_NAME).hex
 TARGET_BIN  ?= $(TARGET_NAME).bin
 
 # Release F/W Version string
-DEF_FLAGS += -D_FW_VERSION_STR_=\"V100\"
+DEF_FLAGS += -D_FW_VERSION_STR_=\"V101\"
 
 # Serial debug port define. (PA2-Tx, PA3-Rx)
 DEF_FLAGS += -D_DEBUG_UART_PORT_=2 -D_DEBUG_UART_BAUD_=115200
