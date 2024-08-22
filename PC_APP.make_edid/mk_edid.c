@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 /*---------------------------------------------------------------------------*/
 uint8_t ONCHIP_EDID[256] = {
@@ -167,6 +168,12 @@ const char *Manufacturer = "HKD";
 // EDID 10 ~ 11 (Manafacturer product code)
 const short ProductCode = 0x0012;
 
+const int MassProductYear  = 2024;
+const int MassProductMonth = 8;
+const char *Descriptor_2 = "Hardkernel   ";
+const char *Descriptor_3 = "ODROID-VU12  ";
+const char *Descriptor_4 = "2024.08.20.V1";
+
 /*---------------------------------------------------------------------------*/
 int main ()
 {
@@ -174,17 +181,44 @@ int main ()
 
     lt8619c_edid_dtbcal (ONCHIP_EDID + 0x36, &lcd_timing);
 
+    // manufacturer name set (HKD)
     ONCHIP_EDID [8]  = ((Manufacturer[0] - '@') << 2) & 0x7C;
     ONCHIP_EDID [8] |= ((Manufacturer[1] - '@') >> 3) & 0x03;
     ONCHIP_EDID [9]  = ((Manufacturer[1] - '@') << 5) & 0xE0;
     ONCHIP_EDID [9] |= ((Manufacturer[2] - '@') & 0x1F);
 
+    // product code set (0x0012, 18)
     ONCHIP_EDID [10] = (ProductCode     ) & 0xFF;
     ONCHIP_EDID [11] = (ProductCode >> 8) & 0xFF;
 
+    // cal weeks
+    ONCHIP_EDID [16] = MassProductMonth * 4;
+    // cal year
+    ONCHIP_EDID [17] = MassProductYear - 1990;
+
+    memset (&ONCHIP_EDID[72], 0x00, 18 * 3);
+
+    // Monitor Name (Product)
+    ONCHIP_EDID[72 +3] = 0xFC;
+    sprintf (&ONCHIP_EDID [72 +5], "%s", Descriptor_2);
+
+    // Monitor Name (Model)
+    ONCHIP_EDID[90 +3] = 0xFC;
+    sprintf (&ONCHIP_EDID [90 +5], "%s", Descriptor_3);
+
+    // Monitor Serial (Mass Production start date). 2024.08.20
+    ONCHIP_EDID[108 +3] = 0xFF;
+    sprintf (&ONCHIP_EDID[108 +5], "%s", Descriptor_4);
+
+    // Extention Block count;
+    ONCHIP_EDID[126] = 1;
     ONCHIP_EDID[127] = lt8619c_edid_checksum (0, &ONCHIP_EDID[0]);  //edid_check_sum;
 
-    printf ("\r\nCalculate EDID data [0 ~ 127], Manufacturer = %s, Product code = %d\r\n", Manufacturer, ProductCode);
+    printf ("\r\n");
+    printf ("Calculate EDID data [0 ~ 127], Manufacturer = %s, Product code = %d\r\n", Manufacturer, ProductCode);
+    printf ("Monitor Discriptor2 (ID : 0x%02X) : %s\r\n", ONCHIP_EDID[ 72 +3], Descriptor_2);
+    printf ("Monitor Discriptor3 (ID : 0x%02X) : %s\r\n", ONCHIP_EDID[ 90 +3], Descriptor_3);
+    printf ("Monitor Discriptor4 (ID : 0x%02X) : %s\r\n", ONCHIP_EDID[108 +3], Descriptor_4);
     printf ("\r\n");
     printf ("pix_clk = %d \r\n", lcd_timing.pix_clk);
     printf ("\r\n");
