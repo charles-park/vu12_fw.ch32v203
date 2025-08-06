@@ -32,7 +32,13 @@ uint8_t HDMI_Signal = eSTATUS_NO_SIGNAL;
 /*---------------------------------------------------------------------------*/
 void blink_status_led (void)
 {
-    digitalWrite (PORT_ALIVE_LED, !digitalRead(PORT_ALIVE_LED));
+    static uint8_t delay = (1000 / (PERIOD_LT8619C_LOOP * 2));
+
+    if (!delay) {
+        delay = (1000 / (PERIOD_LT8619C_LOOP * 2));
+        digitalWrite (PORT_ALIVE_LED, !digitalRead(PORT_ALIVE_LED));
+    }
+    delay--;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -172,8 +178,8 @@ void loop() {
 #if defined (_DEBUG_VU12_FW_)
     printf ("eSTATUS_BACKLIGHT_INIT\r\n");
 #endif
-                touch_reset (200);
                 backlight_control (Brightness);
+                touch_reset (50);
                 HDMI_Signal = eSTATUS_SIGNAL_STABLE;
                 break;
             default :

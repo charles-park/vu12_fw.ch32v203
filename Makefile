@@ -15,7 +15,7 @@ TARGET_HEX  ?= $(TARGET_NAME).hex
 TARGET_BIN  ?= $(TARGET_NAME).bin
 
 # Release F/W Version string
-DEF_FLAGS += -D_FW_VERSION_STR_=\"V102\"
+DEF_FLAGS += -D_FW_VERSION_STR_=\"V103\"
 
 # Serial debug port define. (PA2-Tx, PA3-Rx)
 DEF_FLAGS += -D_DEBUG_UART_PORT_=2 -D_DEBUG_UART_BAUD_=115200
@@ -61,6 +61,8 @@ $(BUILD_DIR)/$(TARGET_ELF): $(OBJS)
 # /*---------------------------------------------------------------------------*/
 #	Download Tool
 #	https://github.com/ch32-rs/wchisp
+#
+#   wchisp config unprotect
 #	wchisp flash build/app.bin
 # /*---------------------------------------------------------------------------*/
 # assembly

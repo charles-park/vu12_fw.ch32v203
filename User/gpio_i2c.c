@@ -15,8 +15,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-//#define GPIO_SET_DELAY  50      // micro seconds (I2C 10Khz)
-#define GPIO_SET_DELAY  3      // micro seconds (I2C 200Khz)
+#define GPIO_SET_DELAY  2      // micro seconds (I2C 300Khz)
 
 /*---------------------------------------------------------------------------*/
 // gpio low level control func

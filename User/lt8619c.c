@@ -180,9 +180,9 @@ uint8_t     lt8619c_i2c_read        (uint8_t reg)
 void        lt8619c_reset           (void)
 {
     digitalWrite (LT8619C_RESET_PORT, LOW);
-    delay (100);
+    delay (50);
     digitalWrite (LT8619C_RESET_PORT, HIGH);
-    delay (100);
+    delay (50);
 }
 
 /*---------------------------------------------------------------------------*/

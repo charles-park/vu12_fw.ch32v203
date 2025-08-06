@@ -53,7 +53,7 @@ extern "C"
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-#define PERIOD_LT8619C_LOOP 1000
+#define PERIOD_LT8619C_LOOP 10
 
 #define D_VOL_DEFAULT       0x50    // -16 dB(default) (24db - value * 0.5)
 #define A_VOL_DEFAULT       0x00    // 0 dB
